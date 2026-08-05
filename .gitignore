@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Frontend build
+frontend/dist/
+frontend/.env
+
+# Backend
+backend/.venv/
+backend/venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+backend/exports/
+*.db
+*.sqlite3
+
+# Python env / secrets
+.env
+.env.*
+!.env.example
+*.log
+
+# Editor
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
