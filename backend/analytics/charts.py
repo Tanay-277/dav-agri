@@ -32,7 +32,8 @@ def line_chart(df: pd.DataFrame) -> dict[str, Any]:
         labels, values = _series(df, x_col, metric)
         if labels:
             series.append({"name": name, "labels": labels, "values": values})
-    return {"title": "Trend Analysis", "labels": [], "series": series}
+    labels = series[0]["labels"] if series else []
+    return {"title": "Trend Analysis", "labels": labels, "series": series}
 
 
 def bar_chart(df: pd.DataFrame, metric: str = "production") -> dict[str, Any]:

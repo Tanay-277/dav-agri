@@ -1,20 +1,23 @@
-import { Button } from "@/components/ui/button"
+import { lazy, Suspense } from "react"
+
+const DashboardPage = lazy(() =>
+  import("@/pages/dashboard-page").then((m) => ({ default: m.DashboardPage }))
+)
 
 export function App() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
+    <Suspense
+      fallback={
+        <div className="flex min-h-svh items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Loading dashboard…</p>
+          </div>
         </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
-      </div>
-    </div>
+      }
+    >
+      <DashboardPage />
+    </Suspense>
   )
 }
 

@@ -39,9 +39,7 @@ export async function getInsights(
   return data
 }
 
-export async function getStory(
-  filters: DashboardFilters = {}
-): Promise<Story> {
+export async function getStory(filters: DashboardFilters = {}): Promise<Story> {
   const { data } = await api.get<Story>("/story", {
     params: toQuery(filters),
   })

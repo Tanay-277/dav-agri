@@ -5,7 +5,6 @@ import json
 from fastapi.responses import Response
 
 from analytics import charts, engine as kpi_engine
-from core.config import get_settings, Settings
 from database import data
 from insights import engine as insight_engine
 from models.schemas import DashboardFilters

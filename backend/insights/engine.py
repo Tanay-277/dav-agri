@@ -62,9 +62,6 @@ def _threshold_insights(df: pd.DataFrame) -> list[Insight]:
     out: list[Insight] = []
 
     # Yield vs overall average
-    overall = df.get("overall_yield")  # not present; placeholder removed
-    del overall
-
     yield_col = "yield" if "yield" in df.columns else None
     if yield_col is not None:
         vals = df[yield_col].dropna()

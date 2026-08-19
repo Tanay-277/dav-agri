@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
 from analytics import charts, engine as kpi_engine
-from core.config import get_settings, Settings
+from core.config import get_settings
 from core.logging import get_logger
 from database import data
 from database.db import record_insight_run
