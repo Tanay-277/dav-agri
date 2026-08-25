@@ -1,0 +1,125 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.pusher.name != 'dependabot[bot]'
+    steps:
+      - name: Authorize main branch deployment
+        run: echo "Authorized deployment to main"
+
+  frontend-deploy:
+    needs: authorize
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Lint and typecheck
+        run: |
+          cd frontend
+          npm run lint
+          npm run typecheck
+
+      - name: Build frontend
+        run: cd frontend && npm run build
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Deploy to Vercel
+        run: |
+          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }} --org=${{ secrets.VERCEL_ORG_ID }} --project=${{ secrets.VERCEL_PROJECT_ID }}
+          vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} --org=${{ secrets.VERCEL_ORG_ID }} --project=${{ secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+  backend-deploy:
+    needs: authorize
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pip install -e ".[dev]"
+
+      - name: Run tests
+        working-directory: ./backend
+        run: pytest tests/ -v
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@latest
+
+      - name: Deploy to Railway
+        working-directory: ./backend
+        run: |
+          set -o pipefail
+          railway login --token ${{ secrets.RAILWAY_TOKEN }}
+          railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --service ${{ secrets.RAILWAY_SERVICE_ID }}
+          railway up --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Capture Railway deployment URL
+        id: railway-url
+        working-directory: ./backend
+        run: |
+          URL=$(railway status 2>/dev/null | grep -oE 'https://[^[:space:]]+' | head -1 || true)
+          if [ -n "$URL" ]; then
+            echo "url=$URL" >> $GITHUB_OUTPUT
+            echo "Detected Railway URL: $URL"
+          else
+            echo "::warning::Could not detect Railway service URL from 'railway status' output"
+          fi
+
+      - name: Verify backend health
+        working-directory: ./backend
+        run: |
+          if [ -z "${{ steps.railway-url.outputs.url }}" ]; then
+            echo "::warning::Skipping health check because Railway URL was not detected"
+            exit 0
+          fi
+          URL="${{ steps.railway-url.outputs.url }}"
+          echo "Waiting for backend to become healthy at $URL/api/health ..."
+          for i in $(seq 1 12); do
+            if curl -fsS "$URL/api/health" > /dev/null; then
+              echo "Backend health check passed on attempt $i"
+              exit 0
+            fi
+            echo "Health check attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
+          echo "::error::Backend did not pass health check within 120s"
+          exit 1

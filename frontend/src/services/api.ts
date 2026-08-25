@@ -1,6 +1,7 @@
 import axios from "axios"
+import type { AxiosError } from "axios"
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "/api"
+const baseURL = import.meta.env.VITE_API_BASE_URL || "/api/v1"
 
 export const api = axios.create({
   baseURL,
@@ -10,11 +11,11 @@ export const api = axios.create({
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const status = error?.response?.status
+  (error: AxiosError<{ detail?: string }>) => {
+    const status = error.response?.status
     const message =
-      error?.response?.data?.detail ||
-      error?.message ||
+      error.response?.data?.detail ||
+      error.message ||
       "An unexpected error occurred"
     return Promise.reject(new ApiError(status, message))
   }

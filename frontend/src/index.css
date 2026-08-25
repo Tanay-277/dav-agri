@@ -127,4 +127,24 @@
   html {
     @apply font-sans;
     }
+  html:has(dark) {
+    color-scheme: dark;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-reduced-sound: reduce) {
+  * {
+    /* Voice features will respect this via JS media query check */
+  }
 }

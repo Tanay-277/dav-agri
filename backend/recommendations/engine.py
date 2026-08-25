@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from insights.engine import _avg
+from analytics.engine import _mean as _avg  # noqa: F401
 from models.schemas import Recommendation
 
 

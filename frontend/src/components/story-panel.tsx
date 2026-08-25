@@ -1,17 +1,17 @@
-import { Bot, Lightbulb, RefreshCw } from "lucide-react"
+import { Bot, RefreshCw } from "lucide-react"
 
 import type { Story } from "@/types/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { RecommendationIcon } from "@/lib/icons/recommendation-icon"
+import { WarningIcon } from "@/lib/icons/warning-icon"
 
-export function StoryPanel({
-  story,
-  onRegenerate,
-  regenerating,
-}: {
+interface StoryPanelProps {
   story: Story | null
   onRegenerate: () => void
   regenerating?: boolean
-}) {
+}
+
+export function StoryPanel({ story, onRegenerate, regenerating }: StoryPanelProps) {
   return (
     <Card className="flex flex-col">
       <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -34,6 +34,10 @@ export function StoryPanel({
       <CardContent className="flex flex-col gap-4 pt-0">
         {story ? (
           <>
+            <div className="flex items-start gap-2">
+              <WarningIcon className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden="true" />
+              <p className="leading-relaxed text-foreground/90">{story.summary}</p>
+            </div>
             <p className="leading-relaxed text-foreground/90">{story.story}</p>
             {story.recommendations.length > 0 && (
               <div>
@@ -47,7 +51,7 @@ export function StoryPanel({
                       className="flex items-start gap-2 text-sm text-foreground/80"
                     >
                       <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                        <Lightbulb className="size-3 text-primary" />
+                        <RecommendationIcon className="size-3 text-primary" aria-hidden="true" />
                       </span>
                       {rec}
                     </li>

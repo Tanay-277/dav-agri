@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: agristory-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DEBUG
+        value: false
+      - key: DATASET_FILE
+        value: agriculture.csv
+      - key: CORS_ORIGINS
+        value: https://agristory.vercel.app,http://localhost:5173

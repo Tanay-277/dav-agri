@@ -3,19 +3,23 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
-from analytics import charts, engine as kpi_engine
+from analytics import charts
+from analytics import engine as kpi_engine
 from core.config import get_settings
 from core.logging import get_logger
 from database import data
-from database.db import record_insight_run
+from database.db import record_insight_run, record_survey_response, record_task_log
 from insights import engine as insight_engine
 from models.schemas import (
+    KPI,
     DashboardFilters,
     DashboardResponse,
+    ErrorLog,
     InsightsResponse,
-    KPI,
     RecommendationsResponse,
     Story,
+    SurveyResponse,
+    TaskLog,
 )
 from recommendations import engine as rec_engine
 
@@ -72,7 +76,9 @@ def get_story(
     insights = insight_engine.generate_insights(df)
     recs = rec_engine.generate_recommendations(df)
     result = insight_engine.generate_story(df, insights, [r.model_dump() for r in recs])
-    record_insight_run(_as_filter_dict(filters), [i.model_dump() for i in insights], result["story"])
+    record_insight_run(
+        _as_filter_dict(filters), [i.model_dump() for i in insights], result["story"]
+    )
     return Story(**result)
 
 
@@ -81,7 +87,9 @@ def get_recommendations(
     filters: DashboardFilters = Depends(),
 ) -> RecommendationsResponse:
     df = data.get_filtered(_as_filter_dict(filters))
-    return RecommendationsResponse(recommendations=rec_engine.generate_recommendations(df))
+    return RecommendationsResponse(
+        recommendations=rec_engine.generate_recommendations(df)
+    )
 
 
 @router.get("/filters")
@@ -108,3 +116,31 @@ def dataset_status() -> dict:
         "rows": int(len(df)),
         "columns": list(df.columns),
     }
+
+
+@router.post("/research/task-log")
+def log_task(task: TaskLog) -> dict:
+    record_task_log(task.model_dump())
+    return {"status": "ok"}
+
+
+@router.post("/research/survey")
+def submit_survey(survey: SurveyResponse) -> dict:
+    record_survey_response(survey.model_dump())
+    return {"status": "ok"}
+
+
+@router.get("/research/condition")
+def get_condition(condition: str = Query("conventional")) -> dict:
+    return {"condition": condition}
+
+
+@router.post("/research/error-log")
+def log_error(error: ErrorLog) -> dict:
+    try:
+        from database.db import record_error_log
+
+        record_error_log(error.model_dump())
+    except Exception as exc:
+        logger.warning("Failed to record error log: %s", exc)
+    return {"status": "ok"}
