@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 interface SectionCardProps {
   title: string
   icon?: ReactNode
-  children: ReactNode
+  children?: ReactNode
   loading?: boolean
   error?: string | null
   empty?: ReactNode

@@ -67,6 +67,14 @@ class Settings:
         "yes",
     }
 
+    # --- TTS ---
+    TTS_PROVIDER: str = os.getenv("TTS_PROVIDER", "edge")
+    TTS_ALLOW_MOCK: bool = os.getenv("TTS_ALLOW_MOCK", "false").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
     # --- Export ---
     EXPORT_DIR: Path = BACKEND_DIR / "exports"
 

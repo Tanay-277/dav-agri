@@ -258,9 +258,12 @@ class WhisperSpeechProvider(SpeechProvider):
     def __init__(self, model_size: str = "small") -> None:
         self.model_size = model_size
         self._model = None
-        self._load_model()
+        self._load_model_attempted = False
 
     def _load_model(self) -> None:
+        if self._load_model_attempted:
+            return
+        self._load_model_attempted = True
         try:
             from faster_whisper import WhisperModel
             self._model = WhisperModel(
@@ -271,6 +274,9 @@ class WhisperSpeechProvider(SpeechProvider):
             logger.info("Loaded Whisper model: %s", self.model_size)
         except ImportError:
             logger.warning("faster-whisper is not installed. Whisper provider will fail at runtime.")
+            self._model = None
+        except Exception as exc:
+            logger.warning("Failed to load Whisper model: %s", exc)
             self._model = None
 
     def supports_language(self, language: str) -> bool:
@@ -285,6 +291,8 @@ class WhisperSpeechProvider(SpeechProvider):
         validation_error = self._validate_audio(audio_bytes, request)
         if validation_error:
             return TranscriptionResponse(success=False, result=None, message=validation_error.message)
+
+        self._load_model()
 
         if self._model is None:
             return TranscriptionResponse(
@@ -365,10 +373,17 @@ class WhisperSpeechProvider(SpeechProvider):
 
         except Exception as exc:
             logger.exception("Whisper transcription failed: %s", exc)
+            error_message = f"Transcription failed: {exc}"
+            try:
+                import av
+                if isinstance(exc, av.error.InvalidDataError):
+                    error_message = "Invalid audio format. Please upload a valid audio file."
+            except ImportError:
+                pass
             return TranscriptionResponse(
                 success=False,
                 result=None,
-                message=f"Transcription failed: {exc}",
+                message=error_message,
             )
         finally:
             if tmp_path and os.path.exists(tmp_path):

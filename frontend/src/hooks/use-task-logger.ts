@@ -23,9 +23,15 @@ export interface TaskRecord {
 
 export function useTaskLogger(condition: string, user_id?: string) {
   const activeTaskRef = useRef<{ task_id: string; start: number } | null>(null)
+  const voiceUsedRef = useRef(false)
 
   const startTask = useCallback((task_id: string) => {
     activeTaskRef.current = { task_id, start: Date.now() }
+    voiceUsedRef.current = false
+  }, [])
+
+  const markVoiceUsed = useCallback(() => {
+    voiceUsedRef.current = true
   }, [])
 
   const completeTask = useCallback(
@@ -38,15 +44,16 @@ export function useTaskLogger(condition: string, user_id?: string) {
         user_id,
         completed,
         duration_ms,
-        voice_used: false,
+        voice_used: voiceUsedRef.current,
         error,
       }
-      fetch("/api/research/task-log", {
+      fetch("/api/v1/research/task-log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(record),
       }).catch(() => {})
       activeTaskRef.current = null
+      voiceUsedRef.current = false
     },
     [condition, user_id]
   )
@@ -59,5 +66,5 @@ export function useTaskLogger(condition: string, user_id?: string) {
     }
   }, [completeTask])
 
-  return { TASKS, startTask, completeTask }
+  return { TASKS, startTask, completeTask, markVoiceUsed }
 }

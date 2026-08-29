@@ -104,6 +104,12 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
     applied_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS dataset_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_weather_unique
     ON weather_observations (location_id, source_id, timestamp, data_classification);
 CREATE INDEX IF NOT EXISTS idx_weather_location_date

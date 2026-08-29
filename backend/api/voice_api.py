@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import Response
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
-from api.routes import _as_filter_dict
 from analytics import engine as kpi_engine
+from api.routes import _as_filter_dict
 from core.config import get_settings
 from core.logging import get_logger
 from database import data
@@ -15,14 +15,12 @@ from insights import engine as insight_engine
 from models.schemas import DashboardFilters, Insight
 from nlu.engine import QueryUnderstandingEngine
 from nlu.schema import StructuredQuery
-from speech_to_text.api import router as speech_router
 from speech_to_text.integration import SpeechToTextEngine
 from speech_to_text.languages import SUPPORTED_LANGUAGES
-from text_to_speech.engine import TextToSpeechEngine
-from text_to_speech.schemas import InsightType, SynthesisRequest, VoiceGender
-
 from speech_to_text.provider import get_speech_provider
+from text_to_speech.engine import TextToSpeechEngine
 from text_to_speech.provider import get_tts_provider
+from text_to_speech.schemas import VoiceGender
 
 logger = get_logger(__name__)
 
@@ -84,7 +82,7 @@ def get_locations() -> LocationResponse:
     opts = data.get_filter_options()
     return LocationResponse(
         states=opts.get("state", []),
-        districts=opts.get("district", {}),
+        districts=opts.get("district", []),
         crops=opts.get("crop", []),
     )
 
@@ -231,6 +229,7 @@ class SpeechResponseRequest(BaseModel):
     language: str = Field(default="en")
     voice_gender: VoiceGender = Field(default=VoiceGender.FEMALE)
     rate: float = Field(default=1.0, ge=0.5, le=2.0)
+    provider_name: str | None = Field(default=None, description="Override TTS provider name (test only)")
 
 
 class SpeechResponse(BaseModel):
@@ -245,11 +244,38 @@ class SpeechResponse(BaseModel):
     message: str = ""
 
 
-@router.post("/speech-response", response_model=SpeechResponse)
-async def speech_response(request: SpeechResponseRequest) -> SpeechResponse:
-    from text_to_speech.provider import MockTTSProvider, register_tts_provider
-    register_tts_provider(MockTTSProvider())
-    tts_engine = TextToSpeechEngine(provider_name="mock")
+@router.post("/speech-response")
+async def speech_response(request: SpeechResponseRequest) -> Response:
+    from text_to_speech.provider import get_tts_provider
+
+    provider_name = request.provider_name or get_settings().TTS_PROVIDER
+
+    if provider_name == "mock" and not get_settings().TTS_ALLOW_MOCK:
+        raise HTTPException(
+            status_code=500,
+            detail="Mock TTS provider is not allowed in production. "
+                   "Set TTS_ALLOW_MOCK=true to enable mock provider.",
+        )
+
+    try:
+        provider = get_tts_provider(provider_name)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"TTS provider '{provider_name}' is not configured. "
+                   f"Set TTS_PROVIDER env var or install the required dependency.",
+        ) from exc
+
+    if provider_name == "edge" and not getattr(provider, "_available", False):
+        raise HTTPException(
+            status_code=500,
+            detail="EdgeTTS provider is not available. Install edge-tts: pip install edge-tts",
+        )
+
+    tts_engine = TextToSpeechEngine.__new__(TextToSpeechEngine)
+    tts_engine.provider_name = provider_name
+    tts_engine._provider = provider
+
     localized = tts_engine.generate_response(request.insight, language=request.language)
     synthesis = await tts_engine.synthesize_response(
         request.insight,
@@ -257,16 +283,26 @@ async def speech_response(request: SpeechResponseRequest) -> SpeechResponse:
         voice_gender=request.voice_gender,
         rate=request.rate,
     )
-    return SpeechResponse(
-        text=localized.text,
-        language=localized.language,
-        audio_url=synthesis.audio_url,
-        audio_bytes=synthesis.audio_bytes,
-        content_type=synthesis.content_type,
-        duration_ms=synthesis.duration_ms,
-        provider=synthesis.provider,
-        success=synthesis.success,
-        message=synthesis.message or "Speech response generated",
+
+    if not synthesis.success or not synthesis.audio_bytes:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "provider": synthesis.provider,
+                "message": synthesis.message or "Speech synthesis failed",
+            },
+        )
+
+    return Response(
+        content=synthesis.audio_bytes,
+        media_type=synthesis.content_type or "audio/mpeg",
+        headers={
+            "X-Audio-Duration-Ms": str(synthesis.duration_ms),
+            "X-Audio-Provider": synthesis.provider,
+            "X-Audio-Language": localized.language,
+            "X-Audio-Text": localized.text,
+        },
     )
 
 

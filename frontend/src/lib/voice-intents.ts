@@ -30,11 +30,11 @@ export interface ParsedIntent {
 }
 
 export interface ConversationContext {
-  lastCrop?: string
-  lastState?: string
-  lastDistrict?: string
-  lastMetric?: string
-  lastDateRange?: { start?: string; end?: string }
+  last_crop?: string
+  last_state?: string
+  last_district?: string
+  last_metric?: string
+  last_date_range?: { start?: string; end?: string }
 }
 
 export interface VoiceResponsePolicy {
@@ -170,10 +170,10 @@ export function parseVoiceIntent(
   const metric = matchToken(tokens, METRICS)
 
   // Context resolution for follow-ups
-  const resolvedCrop = crop || context.lastCrop
-  const resolvedState = state || context.lastState
-  const resolvedDistrict = district || context.lastDistrict
-  const resolvedMetric = metric || context.lastMetric
+  const resolvedCrop = crop || context.last_crop
+  const resolvedState = state || context.last_state
+  const resolvedDistrict = district || context.last_district
+  const resolvedMetric = metric || context.last_metric
 
   // Confidence scoring
   let confidence: number
@@ -275,10 +275,10 @@ export function parseVoiceIntent(
 
 export function resolveContext(entities: ParsedIntent["entities"], context: ConversationContext): ConversationContext {
   return {
-    lastCrop: entities.crop || context.lastCrop,
-    lastState: entities.state || context.lastState,
-    lastDistrict: entities.district || context.lastDistrict,
-    lastMetric: entities.metric || context.lastMetric,
-    lastDateRange: entities.startDate || entities.endDate ? { start: entities.startDate, end: entities.endDate } : context.lastDateRange,
+    last_crop: entities.crop || context.last_crop,
+    last_state: entities.state || context.last_state,
+    last_district: entities.district || context.last_district,
+    last_metric: entities.metric || context.last_metric,
+    last_date_range: entities.startDate || entities.endDate ? { start: entities.startDate, end: entities.endDate } : context.last_date_range,
   }
 }

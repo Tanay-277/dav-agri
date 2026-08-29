@@ -1,29 +1,23 @@
 from __future__ import annotations
 
-import asyncio
 import logging
-import os
-import tempfile
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
 
 from text_to_speech.languages import (
     LANGUAGE_CODE_MAP,
-    SUPPORTED_LANGUAGES,
     UNSUPPORTED_LANGUAGE_ERROR,
     get_language_config,
     is_language_supported,
 )
-from text_to_speech.normalizer import normalize_for_tts, normalize_number
+from text_to_speech.normalizer import normalize_for_tts
 from text_to_speech.schemas import (
-    AudioFormat,
+    SynthesisRequest,
+    SynthesisResponse,
     TTSProviderError,
     TTSProviderErrorCode,
     VoiceGender,
-    SynthesisRequest,
-    SynthesisResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -206,7 +200,6 @@ class EdgeTTSProvider(TTSProvider):
     async def synthesize(
         self, request: SynthesisRequest
     ) -> SynthesisResponse:
-        start = time.perf_counter()
         validation_error = self._validate_request(request)
         if validation_error:
             return SynthesisResponse(
@@ -250,13 +243,12 @@ class EdgeTTSProvider(TTSProvider):
                 text=normalized_text,
                 voice=voice or f"{language_code}-{lang_config.bcp47_tag.split('-')[-1]}-Neural",
                 rate=f"{int((request.rate - 1) * 100):+d}%",
-                pitch=f"{int((request.pitch - 1) * 100):+d}%",
+                pitch=f"{int((request.pitch - 1) * 100):+d}Hz",
             )
             await communicate.save(str(output_path))
 
             audio_bytes = output_path.read_bytes()
             duration_ms = max(500, int(len(normalized_text) * 50 / request.rate))
-            processing_time_ms = int((time.perf_counter() - start) * 1000)
 
             return SynthesisResponse(
                 success=True,

@@ -1,0 +1,7 @@
+| Condition         |   Participants (n) |   Task Records | Design           |
+|:------------------|-------------------:|---------------:|:-----------------|
+| C1: Conventional  |                  8 |             24 | Between-subjects |
+| C2: Voice + Icons |                  8 |             24 | Within-subjects* |
+| C3: Voice Only    |                  8 |             24 | Within-subjects* |
+| C4: Voice Story   |                  1 |              3 | Within-subjects* |
+| Total             |                 25 |             75 | —                |

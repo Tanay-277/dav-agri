@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 import time
-from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -214,8 +212,8 @@ class TestModule2EndToEnd:
                 "language": "en",
             })
             assert response.status_code == 200
-            data = response.json()
-            assert "text" in data
+            assert response.headers["content-type"] == "audio/mpeg"
+            assert len(response.content) > 0
 
         def test_speech_response_unsupported_language_fallback(self):
             insight = {
@@ -230,8 +228,8 @@ class TestModule2EndToEnd:
                 "voice_gender": "female",
             })
             assert response.status_code == 200
-            data = response.json()
-            assert data["language"] == "en"
+            assert response.headers["content-type"] == "audio/mpeg"
+            assert response.headers.get("X-Audio-Language") == "en"
 
     class TestMultipleLanguages:
         def test_hindi_query(self):
@@ -256,8 +254,8 @@ class TestModule2EndToEnd:
                 "voice_gender": "female",
             })
             assert response.status_code == 200
-            data = response.json()
-            assert data["language"] == "hi"
+            assert response.headers["content-type"] == "audio/mpeg"
+            assert response.headers.get("X-Audio-Language") == "hi"
 
     class TestMultipleLocations:
         @pytest.mark.parametrize("state", ["Punjab", "Maharashtra", "Karnataka", "Gujarat"])
@@ -340,8 +338,8 @@ class TestModule2EndToEnd:
                 "language": "en",
             })
             assert speech_response.status_code == 200
-            speech_data = speech_response.json()
-            assert str(value) in speech_data["text"]
+            audio_text = speech_response.headers.get("X-Audio-Text", "")
+            assert str(value) in audio_text
 
         def test_no_hallucinated_data_in_insights(self):
             response = client.post("/api/v1/voice/query", json={
@@ -440,9 +438,8 @@ class TestModule2EndToEnd:
                 "voice_gender": "female",
             })
             assert speech_response.status_code == 200
-            speech_data = speech_response.json()
-            assert speech_data["success"] is True
-            assert len(speech_data["text"]) > 0
+            assert speech_response.headers["content-type"] == "audio/mpeg"
+            assert len(speech_response.content) > 0
 
         def test_weather_endpoint_returns_kpis(self):
             response = client.get("/api/v1/voice/weather?state=Punjab")

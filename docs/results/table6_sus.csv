@@ -1,0 +1,5 @@
+Condition,n,Mean,SD,Median,Min,Max
+C1: Conventional,8,71.9,15.7,73.0,50.0,89.0
+C2: Voice + Icons,8,67.9,8.3,67.5,57.0,84.0
+C3: Voice Only,8,67.9,8.3,67.5,57.0,84.0
+C4: Voice Story,1,66.0,—,66.0,66.0,66.0

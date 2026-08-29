@@ -1,10 +1,10 @@
 import { ErrorBoundary } from "@/components/error-boundary"
-import { VoiceDashboard } from "@/components/voice-dashboard/voice-dashboard"
+import { DashboardPage } from "@/pages/dashboard-page"
 
 export function App() {
   return (
     <ErrorBoundary>
-      <VoiceDashboard />
+      <DashboardPage />
     </ErrorBoundary>
   )
 }

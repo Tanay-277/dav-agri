@@ -1,0 +1,5 @@
+Condition,n,Mean (ms),SD,Median (ms),IQR (ms),Min (ms),Max (ms)
+C1: Conventional,8,3690,160,3679,184,3478,3928
+C2: Voice + Icons,8,3745,531,3722,670,2904,4468
+C3: Voice Only,8,3745,531,3722,670,2904,4468
+C4: Voice Story,1,4468,—,4468,0,4468,4468

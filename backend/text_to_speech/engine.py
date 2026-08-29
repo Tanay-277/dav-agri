@@ -36,10 +36,12 @@ class TextToSpeechEngine:
         self.provider_name = provider_name
         try:
             self._provider = get_tts_provider(provider_name)
-        except RuntimeError:
-            from text_to_speech.provider import MockTTSProvider, register_tts_provider
-            register_tts_provider(MockTTSProvider())
-            self._provider = get_tts_provider(provider_name)
+        except RuntimeError as exc:
+            raise RuntimeError(
+                "No TTS providers are registered. "
+                "Import a module that registers providers (e.g. text_to_speech.api) "
+                "or explicitly register a provider before creating TextToSpeechEngine."
+            ) from exc
 
     def generate_response(self, insight: dict[str, Any], language: str = "en") -> LocalizedResponse:
         """Convert a structured insight dict to a localized text response.

@@ -32,7 +32,8 @@ import { useTaskLogger } from "@/hooks/use-task-logger"
 import { useVoiceInput } from "@/hooks/use-voice-input"
 import { useVoiceOutput } from "@/hooks/use-voice-output"
 import { type ParsedIntent } from "@/lib/voice-intents"
-import { useCallback, useEffect, useState } from "react"
+import { voiceQuery, type VoiceQueryResponse } from "@/services/dashboard"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 function toOptions(values?: string[]): SelectOption[] {
   return (values ?? []).map((value) => ({ value, label: value }))
@@ -88,6 +89,17 @@ export function DashboardPage() {
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set())
   const [activeIcon, setActiveIcon] = useState<string | null>(null)
   const [userId] = useState(() => localStorage.getItem("agristory_user_id") || crypto.randomUUID())
+  const [voiceQueryLoading, setVoiceQueryLoading] = useState(false)
+  const [voiceQueryError, setVoiceQueryError] = useState<string | null>(null)
+  const [voiceQueryMessage, setVoiceQueryMessage] = useState<string | null>(null)
+  const [voiceLang, setVoiceLang] = useState("en-US")
+  const [clarificationOptions, setClarificationOptions] = useState<string[] | null>(null)
+  const [clarificationReasons, setClarificationReasons] = useState<string[] | null>(null)
+  const [clarificationLoading, setClarificationLoading] = useState(false)
+
+  const voiceInput = useVoiceInput()
+  const voiceTranscriptRef = useRef(voiceInput.transcript)
+  voiceTranscriptRef.current = voiceInput.transcript
 
   useEffect(() => {
     localStorage.setItem("agristory_user_id", userId)
@@ -109,28 +121,109 @@ export function DashboardPage() {
     const iconId = iconMap[word]
     if (iconId) setActiveIcon(iconId)
   })
-  const voiceInput = useVoiceInput()
-  const { TASKS, startTask, completeTask } = useTaskLogger(condition, userId)
+  const { TASKS, startTask, completeTask, markVoiceUsed } = useTaskLogger(condition, userId)
 
   const charts = dashboard?.charts
   const metadata = dashboard?.metadata
   const hasData = dashboard != null && (metadata?.rows ?? 0) > 0
 
+  const handleBackendVoiceQuery = useCallback(
+    async (transcript: string) => {
+      const trimmed = transcript.trim()
+      if (!trimmed) return
+
+      markVoiceUsed()
+
+      setVoiceQueryLoading(true)
+      setVoiceQueryError(null)
+      setVoiceQueryMessage(null)
+      setClarificationOptions(null)
+      setClarificationReasons(null)
+      try {
+        const backendLang = voiceLang.split("-")[0] || "en"
+        const response: VoiceQueryResponse = await voiceQuery(
+          trimmed,
+          backendLang,
+          voiceInput.context as unknown as Record<string, unknown>,
+        )
+        const structured = response.structured_query
+        const entities = structured?.entities || {}
+        const timePeriod = structured?.time_period
+
+        if (structured?.needs_clarification) {
+          setClarificationOptions(structured.clarification_options ?? [])
+          setClarificationReasons(structured.ambiguity_reasons ?? [])
+          setVoiceQueryMessage(response.message || "Please provide more details")
+          return
+        }
+
+        setClarificationOptions(null)
+        setClarificationReasons(null)
+        const hasFilters = entities.crop || entities.state || entities.district || timePeriod?.start || timePeriod?.end
+        if (hasFilters) {
+          applyFilters({
+            crop: (entities.crop as string | undefined) ?? undefined,
+            state: (entities.state as string | undefined) ?? undefined,
+            district: (entities.district as string | undefined) ?? undefined,
+            start_date: timePeriod?.start ?? undefined,
+            end_date: timePeriod?.end ?? undefined,
+          })
+        }
+        setVoiceQueryMessage(response.message || "Query processed")
+      } catch (err) {
+        setVoiceQueryError(
+          err instanceof Error ? err.message : "Voice query failed",
+        )
+      } finally {
+        setVoiceQueryLoading(false)
+      }
+    },
+    [voiceLang, voiceInput.context, applyFilters],
+  )
+
   const handleVoiceIntent = useCallback(
     (intent: ParsedIntent) => {
       if (intent.action === "reset") {
         resetFilters()
-      } else if (intent.action === "filter") {
-        applyFilters({
-          crop: intent.entities.crop ?? undefined,
-          state: intent.entities.state ?? undefined,
-          district: intent.entities.district ?? undefined,
-          start_date: intent.entities.startDate ?? undefined,
-          end_date: intent.entities.endDate ?? undefined,
-        })
+        return
+      }
+      if (intent.action === "help") {
+        return
+      }
+      if (intent.action === "read_aloud") {
+        return
+      }
+      if (intent.action === "stop") {
+        voiceInput.stop()
+        return
+      }
+      if (intent.action === "pause") {
+        return
+      }
+      if (intent.action === "resume") {
+        return
+      }
+      if (intent.action === "simple_mode") {
+        setSimpleMode(true)
+        return
+      }
+      if (intent.action === "standard_mode") {
+        setSimpleMode(false)
+        return
+      }
+      if (intent.action === "undo") {
+        return
+      }
+      if (intent.action === "confirm" || intent.action === "cancel") {
+        voiceInput.handleIntent(intent)
+        return
+      }
+      if (intent.action === "query" || intent.action === "filter") {
+        handleBackendVoiceQuery(voiceTranscriptRef.current)
+        return
       }
     },
-    [applyFilters, resetFilters]
+    [resetFilters, voiceInput, handleBackendVoiceQuery],
   )
 
   const handleTaskStart = useCallback(
@@ -157,7 +250,7 @@ export function DashboardPage() {
 
   const handleSurveyComplete = useCallback(
     async (responses: { comprehension_score: number; trust_score: number; sus_score: number; feedback: string }) => {
-      await fetch("/api/research/survey", {
+      await fetch("/api/v1/research/survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...responses, condition, user_id: userId }),
@@ -170,8 +263,59 @@ export function DashboardPage() {
   const handleConditionChange = useCallback((newCondition: string) => {
     setCondition(newCondition)
     setCompletedTasks(new Set())
+    setVoiceQueryError(null)
+    setVoiceQueryMessage(null)
+    setClarificationOptions(null)
+    setClarificationReasons(null)
     voiceInput.resetContext()
   }, [voiceInput])
+
+  const handleClarificationSelect = useCallback(
+    async (option: string) => {
+      setClarificationLoading(true)
+      setVoiceQueryError(null)
+      setVoiceQueryMessage(null)
+      try {
+        const backendLang = voiceLang.split("-")[0] || "en"
+        const response: VoiceQueryResponse = await voiceQuery(
+          option,
+          backendLang,
+          voiceInput.context as unknown as Record<string, unknown>,
+        )
+        const structured = response.structured_query
+        const entities = structured?.entities || {}
+        const timePeriod = structured?.time_period
+
+        if (structured?.needs_clarification) {
+          setClarificationOptions(structured.clarification_options ?? [])
+          setClarificationReasons(structured.ambiguity_reasons ?? [])
+          setVoiceQueryMessage(response.message || "Please provide more details")
+          return
+        }
+
+        setClarificationOptions(null)
+        setClarificationReasons(null)
+        const hasFilters = entities.crop || entities.state || entities.district || timePeriod?.start || timePeriod?.end
+        if (hasFilters) {
+          applyFilters({
+            crop: (entities.crop as string | undefined) ?? undefined,
+            state: (entities.state as string | undefined) ?? undefined,
+            district: (entities.district as string | undefined) ?? undefined,
+            start_date: timePeriod?.start ?? undefined,
+            end_date: timePeriod?.end ?? undefined,
+          })
+        }
+        setVoiceQueryMessage(response.message || "Query processed")
+      } catch (err) {
+        setVoiceQueryError(
+          err instanceof Error ? err.message : "Voice query failed",
+        )
+      } finally {
+        setClarificationLoading(false)
+      }
+    },
+    [voiceLang, voiceInput.context, applyFilters],
+  )
 
   const showVoiceControls = condition !== "conventional"
   const showIcons = condition === "voice-icons" || condition === "voice-story"
@@ -229,18 +373,62 @@ export function DashboardPage() {
 
       {/* Voice controls */}
       {showVoiceControls && (
-        <VoiceControls
-          onIntent={handleVoiceIntent}
-          transcript={voiceInput.transcript}
-          interimTranscript={voiceInput.interimTranscript}
-          isListening={voiceInput.isListening}
-          error={voiceInput.error}
-          isSupported={voiceInput.isSupported}
-          start={voiceInput.start}
-          stop={voiceInput.stop}
-          confirmation={voiceInput.confirmation}
-          clarification={voiceInput.clarification}
-        />
+        <>
+          <VoiceControls
+            onIntent={handleVoiceIntent}
+            transcript={voiceInput.transcript}
+            interimTranscript={voiceInput.interimTranscript}
+            isListening={voiceInput.isListening}
+            error={voiceInput.error}
+            isSupported={voiceInput.isSupported}
+            start={voiceInput.start}
+            stop={voiceInput.stop}
+            confirmation={voiceInput.confirmation}
+            clarification={voiceInput.clarification}
+            onLanguageChange={setVoiceLang}
+          />
+          {voiceQueryLoading && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+              Processing voice query…
+            </div>
+          )}
+          {clarificationLoading && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+              Applying selection…
+            </div>
+          )}
+          {voiceQueryError && (
+            <div className="text-xs text-destructive" role="alert">
+              {voiceQueryError}
+            </div>
+          )}
+          {clarificationOptions && clarificationOptions.length > 0 && !voiceQueryError && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+              <p className="text-xs font-medium text-foreground">
+                {clarificationReasons && clarificationReasons.length > 0
+                  ? clarificationReasons.join("; ")
+                  : "Please select an option to continue:"}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {clarificationOptions.map((option) => (
+                  <Button
+                    key={option}
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleClarificationSelect(option)}
+                  >
+                    {option}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+          {voiceQueryMessage && !voiceQueryError && !(clarificationOptions && clarificationOptions.length > 0) && (
+            <div className="text-xs text-muted-foreground">{voiceQueryMessage}</div>
+          )}
+        </>
       )}
 
       {/* Icon legend / simple mode */}

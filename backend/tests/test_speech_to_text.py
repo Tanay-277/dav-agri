@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import random
+from unittest.mock import patch
 
 import pytest
 
@@ -198,7 +199,8 @@ class TestWhisperProvider:
     @pytest.mark.asyncio
     async def test_transcribe_returns_error_without_model(self):
         provider = WhisperSpeechProvider()
-        response = await provider.transcribe(b"audio", TranscriptionRequest(language="en"))
+        with patch.object(provider, "_load_model", return_value=None):
+            response = await provider.transcribe(b"audio", TranscriptionRequest(language="en"))
         assert response.success is False
         assert "not available" in response.message.lower()
 

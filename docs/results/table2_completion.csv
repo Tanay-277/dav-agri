@@ -1,0 +1,5 @@
+Condition,Total Tasks (n),Completed (n),Completion Rate
+C1: Conventional,24,24,100.0%
+C2: Voice + Icons,24,24,100.0%
+C3: Voice Only,24,24,100.0%
+C4: Voice Story,3,3,100.0%

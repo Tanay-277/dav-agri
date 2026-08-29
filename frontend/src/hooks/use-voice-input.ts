@@ -189,7 +189,7 @@ export function useVoiceInput(
           options: intent.clarificationOptions,
           onSelect: (option: string) => {
             onSpeak?.(`Showing ${option}.`)
-            setContext((prev) => ({ ...prev, lastMetric: option }))
+            setContext((prev) => ({ ...prev, last_metric: option }))
           },
         })
         return

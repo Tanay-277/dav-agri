@@ -32,6 +32,7 @@ interface VoiceControlsProps {
   stop: () => void
   confirmation: { pending: boolean; message: string; onConfirm: () => void; onCancel: () => void }
   clarification: { pending: boolean; message: string; options: string[]; onSelect: (option: string) => void }
+  onLanguageChange?: (lang: string) => void
 }
 
 export function VoiceControls({
@@ -45,6 +46,7 @@ export function VoiceControls({
   stop,
   confirmation,
   clarification,
+  onLanguageChange,
 }: VoiceControlsProps) {
   const voiceOutput = useVoiceOutput()
   const [lang, setLang] = useState("en-US")
@@ -136,6 +138,7 @@ export function VoiceControls({
                 onClick={() => {
                   setLang(l.code)
                   setShowLang(false)
+                  onLanguageChange?.(l.code)
                 }}
                 className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-muted ${
                   lang === l.code ? "font-medium text-primary" : ""

@@ -18,7 +18,7 @@ COPY dataset/ /app/dataset/
 
 ENV PYTHONUNBUFFERED=1 \
     DATASET_FILE=agriculture.csv \
-    CORS_ORIGINS=*
+    CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 
 EXPOSE 8000
 

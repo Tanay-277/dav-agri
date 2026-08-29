@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import sys
+from unittest.mock import patch
 
 import pytest
 
@@ -11,27 +13,33 @@ from text_to_speech.languages import (
     get_language_config,
     is_language_supported,
 )
-from text_to_speech.normalizer import normalize_for_tts, normalize_number, normalize_unit
+from text_to_speech.normalizer import (
+    normalize_for_tts,
+    normalize_number,
+    normalize_unit,
+)
 from text_to_speech.provider import (
     EdgeTTSProvider,
     MockTTSProvider,
+    _registry,
     get_tts_provider,
     register_tts_provider,
 )
 from text_to_speech.schemas import (
-    AudioFormat,
     InsightType,
-    LocalizedResponse,
     SynthesisRequest,
-    SynthesisResponse,
     VoiceGender,
 )
-from text_to_speech.templates import TEMPERATURE_FEELING, TREND_DIRECTION, WARNING_TEMPLATES, get_template
-
+from text_to_speech.templates import (
+    TREND_DIRECTION,
+    WARNING_TEMPLATES,
+    get_template,
+)
 
 DATASET_PATH = None
 try:
     import importlib.resources as pkg_resources
+
     from text_to_speech import dataset as dataset_mod
     DATASET_PATH = pkg_resources.files(dataset_mod).joinpath("test_dataset.json")
 except Exception:
@@ -196,8 +204,125 @@ class TestEdgeTTSProvider:
         assert provider.name == "edge"
 
     def test_supports_language_returns_false_without_dependency(self):
+        with patch.dict(sys.modules, {"edge_tts": None}):
+            provider = EdgeTTSProvider()
+            assert provider.supports_language("en") is False
+
+    @pytest.mark.asyncio
+    async def test_real_provider_generates_audio_bytes(self):
         provider = EdgeTTSProvider()
-        assert provider.supports_language("en") is False
+        if not provider._available:
+            pytest.skip("edge-tts is not installed")
+        response = await provider.synthesize(
+            SynthesisRequest(text="Hello world", language="en")
+        )
+        assert response.success is True
+        assert response.audio_bytes is not None
+        assert len(response.audio_bytes) > 100
+        assert response.provider == "edge"
+        assert response.content_type == "audio/mpeg"
+        assert not response.audio_bytes.startswith(b"MOCK_AUDIO")
+        assert response.metadata is not None
+        assert response.metadata.get("simulated") is not True
+
+    @pytest.mark.asyncio
+    async def test_real_provider_multilingual(self):
+        provider = EdgeTTSProvider()
+        if not provider._available:
+            pytest.skip("edge-tts is not installed")
+        for code in ["hi", "en"]:
+            response = await provider.synthesize(
+                SynthesisRequest(text="Test phrase", language=code)
+            )
+            assert response.success is True, f"Failed for {code}"
+            assert response.audio_bytes is not None
+            assert len(response.audio_bytes) > 100
+            assert response.provider == "edge"
+
+
+class TestProviderRegistration:
+    def test_registers_edge_when_configured_and_available(self):
+        from unittest.mock import MagicMock
+
+        from text_to_speech.api import _register_configured_providers
+
+        _registry._providers.clear()
+        mock_settings = MagicMock()
+        mock_settings.TTS_PROVIDER = "edge"
+        mock_settings.TTS_ALLOW_MOCK = False
+
+        with patch("text_to_speech.api._settings", mock_settings):
+            _register_configured_providers()
+
+        assert "edge" in _registry.list_providers()
+        assert "mock" not in _registry.list_providers()
+        _registry._providers.clear()
+
+    def test_registers_both_edge_and_mock_when_mock_allowed(self):
+        from unittest.mock import MagicMock
+
+        from text_to_speech.api import _register_configured_providers
+
+        _registry._providers.clear()
+        mock_settings = MagicMock()
+        mock_settings.TTS_PROVIDER = "edge"
+        mock_settings.TTS_ALLOW_MOCK = True
+
+        with patch("text_to_speech.api._settings", mock_settings):
+            _register_configured_providers()
+
+        assert "edge" in _registry.list_providers()
+        assert "mock" in _registry.list_providers()
+        _registry._providers.clear()
+
+    def test_registers_mock_when_allowed(self):
+        from unittest.mock import MagicMock
+
+        from text_to_speech.api import _register_configured_providers
+
+        _registry._providers.clear()
+        mock_settings = MagicMock()
+        mock_settings.TTS_PROVIDER = "mock"
+        mock_settings.TTS_ALLOW_MOCK = True
+
+        with patch("text_to_speech.api._settings", mock_settings):
+            _register_configured_providers()
+
+        assert "mock" in _registry.list_providers()
+        assert "edge" not in _registry.list_providers()
+        _registry._providers.clear()
+
+    def test_raises_when_mock_not_allowed(self):
+        from unittest.mock import MagicMock
+
+        from text_to_speech.api import _register_configured_providers
+
+        _registry._providers.clear()
+        mock_settings = MagicMock()
+        mock_settings.TTS_PROVIDER = "mock"
+        mock_settings.TTS_ALLOW_MOCK = False
+
+        with patch("text_to_speech.api._settings", mock_settings):
+            with pytest.raises(RuntimeError, match="not allowed in production"):
+                _register_configured_providers()
+
+        assert len(_registry._providers) == 0
+
+    def test_raises_for_unknown_provider(self):
+        from unittest.mock import MagicMock
+
+        from text_to_speech.api import _register_configured_providers
+
+        _registry._providers.clear()
+        mock_settings = MagicMock()
+        mock_settings.TTS_PROVIDER = "unknown"
+        mock_settings.TTS_ALLOW_MOCK = False
+
+        with patch("text_to_speech.api._settings", mock_settings):
+            with pytest.raises(ValueError, match="Unknown TTS provider"):
+                _register_configured_providers()
+
+        assert len(_registry._providers) == 0
 
 
 class TestEngine:

@@ -1,16 +1,33 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from main import app as _fastapi_app
-
+from text_to_speech.schemas import (
+    SynthesisResponse,
+)
 
 client = TestClient(_fastapi_app)
+
+
+@pytest.fixture(autouse=True)
+def _ensure_tts_providers():
+    from text_to_speech.provider import (
+        EdgeTTSProvider,
+        MockTTSProvider,
+        _registry,
+        register_tts_provider,
+    )
+    _registry._providers.clear()
+    edge = EdgeTTSProvider()
+    if edge._available:
+        register_tts_provider(edge)
+    register_tts_provider(MockTTSProvider())
+    yield
+    _registry._providers.clear()
 
 
 class TestVoiceAPI:
@@ -112,17 +129,17 @@ class TestVoiceAPI:
             "language": "en",
             "voice_gender": "female",
             "rate": 1.0,
+            "provider_name": "mock",
         })
         assert speech_response.status_code == 200
-        speech_data = speech_response.json()
-        assert speech_data["success"] is True
-        assert speech_data["text"]
+        audio_text = speech_response.headers.get("X-Audio-Text", "")
+        assert audio_text
         if "value" in result:
-            assert str(result["value"]) in speech_data["text"]
+            assert str(result["value"]) in audio_text
         elif "values" in result:
             for v in result["values"].values():
                 if v is not None:
-                    assert str(v) in speech_data["text"]
+                    assert str(v) in audio_text
 
     # ------------------------------------------------------------------ #
     # Health check
@@ -195,13 +212,13 @@ class TestVoiceAPI:
             "language": "en",
             "voice_gender": "female",
             "rate": 1.0,
+            "provider_name": "mock",
         })
         assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert "text" in data
-        assert "Punjab" in data["text"]
-        assert "32" in data["text"]
+        assert response.headers["content-type"] == "audio/mpeg"
+        audio_text = response.headers.get("X-Audio-Text", "")
+        assert "Punjab" in audio_text
+        assert "32" in audio_text
 
     # ------------------------------------------------------------------ #
     # Error handling: empty query
@@ -240,8 +257,111 @@ class TestVoiceAPI:
                 "insight": insight,
                 "language": lang,
                 "voice_gender": "female",
+                "provider_name": "mock",
             })
             assert response.status_code == 200, f"Failed for {lang}"
-            data = response.json()
-            assert data["success"] is True
-            assert data["language"] == lang
+            assert response.headers["content-type"] == "audio/mpeg"
+            assert response.headers.get("X-Audio-Language") == lang
+
+
+class TestSpeechResponseProviderSelection:
+    def test_speech_response_uses_configured_provider_by_default(self):
+        mock_settings = MagicMock()
+        mock_settings.TTS_PROVIDER = "edge"
+        mock_settings.TTS_ALLOW_MOCK = True
+
+        mock_synthesis = SynthesisResponse(
+            success=True,
+            provider="edge",
+            audio_bytes=b"REAL_AUDIO_BYTES",
+            content_type="audio/mpeg",
+            duration_ms=1000,
+        )
+        mock_provider = MagicMock()
+        mock_provider.synthesize = AsyncMock(return_value=mock_synthesis)
+
+        with patch("api.voice_api.get_settings", return_value=mock_settings):
+            with patch("text_to_speech.provider.get_tts_provider", return_value=mock_provider):
+                response = client.post("/api/v1/voice/speech-response", json={
+                    "insight": {
+                        "type": "current_weather",
+                        "location": "Punjab",
+                        "value": 32,
+                    },
+                    "language": "en",
+                })
+                assert response.status_code == 200
+                assert response.headers["X-Audio-Provider"] == "edge"
+                assert response.content == b"REAL_AUDIO_BYTES"
+
+    def test_speech_response_rejects_mock_in_production(self):
+        mock_settings = MagicMock()
+        mock_settings.TTS_PROVIDER = "edge"
+        mock_settings.TTS_ALLOW_MOCK = False
+
+        with patch("api.voice_api.get_settings", return_value=mock_settings):
+            response = client.post("/api/v1/voice/speech-response", json={
+                "insight": {
+                    "type": "current_weather",
+                    "location": "Punjab",
+                    "value": 32,
+                },
+                "language": "en",
+                "provider_name": "mock",
+            })
+            assert response.status_code == 500
+            body = response.json()
+            assert "not allowed in production" in body["detail"]
+
+    def test_speech_response_rejects_unavailable_provider(self):
+        mock_settings = MagicMock()
+        mock_settings.TTS_PROVIDER = "edge"
+        mock_settings.TTS_ALLOW_MOCK = True
+
+        mock_provider = MagicMock()
+        mock_provider._available = False
+
+        with patch("api.voice_api.get_settings", return_value=mock_settings):
+            with patch("text_to_speech.provider.get_tts_provider", return_value=mock_provider):
+                response = client.post("/api/v1/voice/speech-response", json={
+                    "insight": {
+                        "type": "current_weather",
+                        "location": "Punjab",
+                        "value": 32,
+                    },
+                    "language": "en",
+                })
+                assert response.status_code == 500
+                body = response.json()
+                assert "not available" in body["detail"]
+
+    def test_speech_response_unsupported_language_fallback(self):
+        response = client.post("/api/v1/voice/speech-response", json={
+            "insight": {
+                "type": "current_weather",
+                "location": "Punjab",
+                "value": 32,
+            },
+            "language": "xx",
+            "provider_name": "mock",
+        })
+        assert response.status_code == 200
+        assert response.headers["X-Audio-Language"] == "en"
+
+    def test_speech_response_with_real_edge_provider(self):
+        insight = {
+            "type": "current_weather",
+            "location": "Punjab",
+            "value": 32,
+            "values": {"rain_probability": 20, "rainfall": 10},
+        }
+        response = client.post("/api/v1/voice/speech-response", json={
+            "insight": insight,
+            "language": "en",
+            "provider_name": "edge",
+        })
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "audio/mpeg"
+        assert response.headers["X-Audio-Provider"] == "edge"
+        assert len(response.content) > 1000
+        assert response.content.startswith(b"\xff\xf3")
