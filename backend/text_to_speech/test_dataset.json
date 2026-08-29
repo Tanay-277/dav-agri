@@ -1,0 +1,147 @@
+{
+  "en": {
+    "phrases": [
+      "rain",
+      "rainfall",
+      "temperature",
+      "degrees",
+      "humidity",
+      "soil moisture",
+      "yield",
+      "production",
+      "55 millimeters",
+      "30 degrees",
+      "70 percent",
+      "25 kg per hectare",
+      "increasing",
+      "decreasing",
+      "warning",
+      "recommendation",
+      "Punjab",
+      "Maharashtra",
+      "Tamil Nadu",
+      "Karnataka"
+    ]
+  },
+  "hi": {
+    "phrases": [
+      "barish",
+      "varsha",
+      "temperature",
+      "digri",
+      "nam",
+      "mitti mein paani",
+      "utpatti",
+      "55 millimeters",
+      "30 degree",
+      "70 percent",
+      "badh raha hai",
+      "ghat raha hai",
+      "satarkee",
+      "salah",
+      "Punjab",
+      "Maharashtra",
+      "Tamil Nadu"
+    ]
+  },
+  "ta": {
+    "phrases": [
+      "mazhai",
+      "nilam",
+      "digri",
+      "namam",
+      "man nilam",
+      "varavu",
+      "55 millimeters",
+      "30 digri",
+      "70 satam",
+      "peruguthu",
+      "kuraiguthu",
+      "ecchari",
+      "aalochana",
+      "Punjab",
+      "Maharashtra",
+      "Tamil Nadu"
+    ]
+  },
+  "te": {
+    "phrases": [
+      "varsham",
+      "nilam",
+      "digri",
+      "namam",
+      "manam nilam",
+      "samputo",
+      "55 millimeters",
+      "30 digri",
+      "70 sata",
+      "peruguthundi",
+      "kuraiguthundi",
+      "hethur",
+      "salaha",
+      "Punjab",
+      "Maharashtra",
+      "Tamil Nadu"
+    ]
+  },
+  "kn": {
+    "phrases": [
+      "male",
+      "nilam",
+      "digri",
+      "nam",
+      "bhoomi niraya",
+      "output",
+      "55 millimeters",
+      "30 digri",
+      "70 shataka",
+      "hechchuttade",
+      "kugguttade",
+      "ecchari",
+      "salahe",
+      "Punjab",
+      "Maharashtra",
+      "Tamil Nadu"
+    ]
+  },
+  "mr": {
+    "phrases": [
+      "paus",
+      "temperature",
+      "digri",
+      "nam",
+      "matitil paani",
+      "utpanna",
+      "55 millimeters",
+      "30 degree",
+      "70 shatka",
+      "vadhtoy",
+      "khadtoy",
+      "satarkee",
+      "salaha",
+      "Punjab",
+      "Maharashtra",
+      "Tamil Nadu"
+    ]
+  },
+  "bn": {
+    "phrases": [
+      "baris",
+      "tap",
+      "digri",
+      "nam",
+      "matir pani",
+      "fal",
+      "55 millimitre",
+      "30 digri",
+      "70 shotosh",
+      "barteche",
+      "komteche",
+      "chetona",
+      "salah",
+      "Punjab",
+      "Maharashtra",
+      "Tamil Nadu"
+    ]
+  }
+}

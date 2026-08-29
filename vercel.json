@@ -1,0 +1,18 @@
+{
+  "framework": "vite",
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    {
+      "source": "/api/v1/(.*)",
+      "destination": "${BACKEND_URL}/api/v1/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_API_BASE_URL": "/api/v1"
+  }
+}

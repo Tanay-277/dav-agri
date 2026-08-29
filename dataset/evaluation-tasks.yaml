@@ -1,0 +1,98 @@
+tasks:
+  - id: T1_weather_outlook
+    label: "Weather outlook"
+    use_case: "weather_outlook"
+    required_data: ["rainfall", "temperature", "humidity"]
+    correct_answer: "rain"
+    success_criterion: "user_identifies_dominant_condition"
+    estimated_duration_s: 60
+    condition_agnostic: true
+    instructions: "Look at the dashboard. Tell me: what is the main weather condition expected for the next few days?"
+    options: ["Rain", "Sunny", "Cloudy", "I don't know"]
+    correct_option: 0
+
+  - id: T2_rainfall_trend
+    label: "Rainfall trend"
+    use_case: "rainfall_trend"
+    required_data: ["rainfall"]
+    correct_answer: "below_normal"
+    success_criterion: "correct_classification"
+    estimated_duration_s: 90
+    condition_agnostic: true
+    instructions: "Look at the rainfall data for the past 30 days. Is the rainfall below normal, above normal, or about normal?"
+    options: ["Below normal", "Above normal", "About normal", "I don't know"]
+    correct_option: 0
+
+  - id: T3_soil_moisture
+    label: "Soil moisture status"
+    use_case: "soil_moisture"
+    required_data: ["soil_moisture"]
+    correct_answer: "irrigate"
+    success_criterion: "correct_action"
+    estimated_duration_s: 60
+    condition_agnostic: true
+    instructions: "Check the soil moisture level. Should you irrigate now, or can you wait?"
+    options: ["Irrigate now", "Wait", "I don't know"]
+    correct_option: 0
+
+  - id: T4_sowing_suitability
+    label: "Sowing suitability"
+    use_case: "sowing_suitability"
+    required_data: ["soil_moisture", "rainfall", "temperature"]
+    correct_answer: "wait"
+    success_criterion: "correct_action"
+    estimated_duration_s: 90
+    condition_agnostic: true
+    instructions: "Based on current soil moisture and weather, is this a good time to sow cotton?"
+    options: ["Sow now", "Wait", "Not suitable", "I don't know"]
+    correct_option: 1
+
+  - id: T5_yield_insight
+    label: "Yield insight"
+    use_case: "yield_insight"
+    required_data: ["yield"]
+    correct_answer: "above_average"
+    success_criterion: "correct_classification"
+    estimated_duration_s: 60
+    condition_agnostic: true
+    instructions: "Look at the yield data for the selected crop. Is the yield above average, below average, or about average?"
+    options: ["Above average", "Below average", "About average", "I don't know"]
+    correct_option: 0
+
+  - id: T6_voice_exploration
+    label: "Voice exploration"
+    use_case: "voice_exploration"
+    required_data: ["crop", "state", "district"]
+    correct_answer: "filters_applied"
+    success_criterion: "correct_filters"
+    estimated_duration_s: 60
+    condition_agnostic: false
+    conditions: ["voice-only", "voice-icons", "voice-story"]
+    instructions: "Using voice, show me data for Wheat in Punjab."
+    success_check: "filters.crop == 'Wheat' and filters.state == 'Punjab'"
+
+  - id: T7_story_review
+    label: "Story review"
+    use_case: "story_review"
+    required_data: ["story"]
+    correct_answer: "irrigate"
+    success_criterion: "key_recommendation_present"
+    estimated_duration_s: 90
+    condition_agnostic: false
+    conditions: ["voice-story"]
+    instructions: "Listen to the story and tell me: what is the main recommendation?"
+    options: ["Irrigate", "Harvest", "Spray pesticide", "Wait", "I don't know"]
+    correct_option: 0
+
+  - id: T8_recommendation_review
+    label: "Recommendation review"
+    use_case: "recommendation_review"
+    required_data: ["recommendations"]
+    correct_answer: "irrigate"
+    success_criterion: "correct_action"
+    estimated_duration_s: 60
+    condition_agnostic: false
+    conditions: ["voice-story"]
+    instructions: "Look at the recommendations. Which action should you take first?"
+    options: ["Irrigate", "Harvest", "Spray pesticide", "Wait", "I don't know"]
+    correct_option: 0

@@ -74,3 +74,44 @@ export async function getDatasetStatus(): Promise<{
   const { data } = await api.get("/dataset/status")
   return data
 }
+
+export interface VoiceQueryResponse {
+  structured_query: {
+    intent: string
+    entities: Record<string, string | undefined>
+    raw_query: string
+    confidence: number
+    time_period?: {
+      start?: string
+      end?: string
+      relative?: string | null
+      is_historical?: boolean
+      is_future?: boolean
+    }
+    needs_clarification?: boolean
+    clarification_options?: string[]
+    ambiguity_reasons?: string[]
+  }
+  insights: Array<{
+    type: string
+    metric?: string
+    message: string
+    severity: string
+    magnitude?: number | null
+  }>
+  speech_response: unknown | null
+  message: string
+}
+
+export async function voiceQuery(
+  transcript: string,
+  language = "en",
+  context?: Record<string, unknown>,
+): Promise<VoiceQueryResponse> {
+  const { data } = await api.post<VoiceQueryResponse>("/voice/query", {
+    query: transcript,
+    language,
+    context,
+  })
+  return data
+}

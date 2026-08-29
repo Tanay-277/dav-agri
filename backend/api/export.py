@@ -4,7 +4,8 @@ import json
 
 from fastapi.responses import Response
 
-from analytics import charts, engine as kpi_engine
+from analytics import charts
+from analytics import engine as kpi_engine
 from database import data
 from insights import engine as insight_engine
 from models.schemas import DashboardFilters
@@ -15,9 +16,7 @@ def _collect(filters: dict | None) -> dict:
     df = data.get_filtered(filters or {})
     insights = insight_engine.generate_insights(df)
     recs = rec_engine.generate_recommendations(df)
-    story = insight_engine.generate_story(
-        df, insights, [r.model_dump() for r in recs]
-    )
+    story = insight_engine.generate_story(df, insights, [r.model_dump() for r in recs])
     return {
         "kpis": [k.model_dump() for k in kpi_engine.compute_kpis(df)],
         "charts": {
@@ -34,9 +33,7 @@ def _collect(filters: dict | None) -> dict:
     }
 
 
-def export_dashboard(
-    filters: DashboardFilters | None, format: str = "pdf"
-) -> Response:
+def export_dashboard(filters: DashboardFilters | None, format: str = "pdf") -> Response:
     payload = _collect(filters.model_dump(exclude_none=True) if filters else {})
 
     if format == "json":
@@ -75,7 +72,9 @@ def export_dashboard(
     flow.append(Paragraph(kpi_lines, styles["BodyText"]))
     flow.append(Spacer(1, 12))
 
-    flow.append(Paragraph(f"<b>Story:</b> {payload['story']['story']}", styles["BodyText"]))
+    flow.append(
+        Paragraph(f"<b>Story:</b> {payload['story']['story']}", styles["BodyText"])
+    )
     flow.append(Spacer(1, 12))
 
     flow.append(Paragraph("<b>Recommendations:</b>", styles["Heading3"]))

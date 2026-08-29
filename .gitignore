@@ -4,10 +4,13 @@ node_modules/
 # Frontend build
 frontend/dist/
 frontend/.env
+frontend/.env.local
+frontend/.env.*.local
 
 # Backend
 backend/.venv/
 backend/venv/
+backend/env/
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -24,5 +27,10 @@ backend/exports/
 # Editor
 .idea/
 .vscode/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
 .DS_Store
 Thumbs.db

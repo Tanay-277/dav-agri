@@ -40,10 +40,36 @@ class Settings:
     DATASET_FILE: str = os.getenv("DATASET_FILE", "agriculture.csv")
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///agri.db")
 
+    # --- Weather data ingestion ---
+    WEATHER_PROVIDER: str = os.getenv("WEATHER_PROVIDER", "csv")
+    OPEN_METEO_URL: str = os.getenv(
+        "OPEN_METEO_URL", "https://archive-api.open-meteo.com/v1"
+    )
+    OPEN_METEO_FORECAST_URL: str = os.getenv(
+        "OPEN_METEO_FORECAST_URL", "https://api.open-meteo.com/v1"
+    )
+    OPEN_METEO_GEOCODING_URL: str = os.getenv(
+        "OPEN_METEO_GEOCODING_URL", "https://geocoding-api.open-meteo.com/v1"
+    )
+    WEATHER_API_TIMEOUT_S: int = int(os.getenv("WEATHER_API_TIMEOUT_S", "10"))
+    WEATHER_CACHE_TTL_HOURS: int = int(os.getenv("WEATHER_CACHE_TTL_HOURS", "24"))
+    WEATHER_FORECAST_CACHE_TTL_HOURS: int = int(
+        os.getenv("WEATHER_FORECAST_CACHE_TTL_HOURS", "3")
+    )
+    WEATHER_API_MAX_RETRIES: int = int(os.getenv("WEATHER_API_MAX_RETRIES", "3"))
+
     # --- AI (Gemini) ---
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
     AI_ENABLED: bool = os.getenv("AI_ENABLED", "true").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+    # --- TTS ---
+    TTS_PROVIDER: str = os.getenv("TTS_PROVIDER", "edge")
+    TTS_ALLOW_MOCK: bool = os.getenv("TTS_ALLOW_MOCK", "false").lower() in {
         "1",
         "true",
         "yes",

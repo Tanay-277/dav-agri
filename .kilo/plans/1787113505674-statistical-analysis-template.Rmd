@@ -1,0 +1,306 @@
+# Statistical Analysis Plan — AgriStory Evaluation
+
+## R Markdown Template
+
+This document provides reproducible R code for the primary and secondary analyses.
+
+```r
+---
+title: "AgriStory Evaluation: Statistical Analysis"
+author: "Research Team"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: show
+    toc: true
+    toc_depth: 3
+params:
+  data_path: "data/study_data.csv"
+  output_path: "results/"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 8, fig.height = 6)
+library(tidyverse)
+library(lme4)
+library(emmeans)
+library(pwr)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+set.seed(42)
+```
+
+## 1. Load Data
+
+```{r load-data}
+data <- read_csv(params$data_path)
+
+# Data cleaning
+data <- data %>%
+  mutate(
+    condition = factor(condition, levels = c("conventional", "voice-only", "voice-icons", "voice-story")),
+    literacy_group = factor(literacy_group, levels = c("low", "semi", "extension")),
+    task_id = factor(task_id),
+    user_id = factor(user_id),
+    completed = as.logical(completed)
+  )
+
+glimpse(data)
+```
+
+## 2. Descriptive Statistics
+
+```{r descriptive}
+# Completion rate by condition
+completion_by_condition <- data %>%
+  group_by(condition) %>%
+  summarise(
+    n = n(),
+    completed = sum(completed),
+    completion_rate = mean(completed) * 100,
+    mean_time = mean(duration_ms, na.rm = TRUE) / 1000,
+    sd_time = sd(duration_ms, na.rm = TRUE) / 1000
+  )
+
+kable(completion_by_condition, digits = 2, caption = "Completion Rate by Condition")
+```
+
+## 3. Primary Analysis: H1 (Comprehension Improvement)
+
+### 3.1 Independent Samples t-test (A vs. D)
+
+```{r h1-ttest}
+# Filter for low-literacy participants only (primary analysis)
+primary_data <- data %>% filter(literacy_group == "low")
+
+# Comprehension score by condition
+comp_scores <- primary_data %>%
+  group_by(user_id, condition) %>%
+  summarise(comprehension_score = mean(quiz_score, na.rm = TRUE), .groups = "drop")
+
+# T-test: Conventional (A) vs. Voice+Icon+Story (D)
+a_vs_d <- comp_scores %>% filter(condition %in% c("conventional", "voice-story"))
+
+t_result <- t.test(comprehension_score ~ condition, data = a_vs_d, var.equal = FALSE)
+print(t_result)
+
+# Effect size (Cohen's d)
+cohens_d <- function(x, y) {
+  nx <- length(x)
+  ny <- length(y)
+  sx <- sd(x)
+  sy <- sd(y)
+  pooled_sd <- sqrt(((nx - 1) * sx^2 + (ny - 1) * sy^2) / (nx + ny - 2))
+  (mean(x) - mean(y)) / pooled_sd
+}
+
+effect_size <- cohens_d(
+  a_vs_d$comprehension_score[a_vs_d$condition == "voice-story"],
+  a_vs_d$comprehension_score[a_vs_d$condition == "conventional"]
+)
+cat("Cohen's d:", round(effect_size, 3))
+```
+
+### 3.2 ANCOVA (Controlling for Pre-Literacy)
+
+```{r h1-ancova}
+# Merge with pre-literacy scores
+pre_scores <- data %>% distinct(user_id, pre_literacy_score)
+ancova_data <- comp_scores %>% left_join(pre_scores, by = "user_id")
+
+ancova_model <- aov(comprehension_score ~ condition + pre_literacy_score, data = ancova_data)
+summary(ancova_model)
+
+# Post-hoc comparisons
+emmeans(ancova_model, pairwise ~ condition, adjust = "bonferroni")
+```
+
+## 4. Primary Analysis: H2 (Trust/SUS Improvement)
+
+```{r h2-trust}
+trust_data <- data %>%
+  distinct(user_id, condition, .keep_all = TRUE) %>%
+  filter(!is.na(trust_score), !is.na(sus_score))
+
+# Trust score t-test
+trust_t <- t.test(trust_score ~ condition, data = trust_data %>% filter(condition %in% c("conventional", "voice-story")))
+print(trust_t)
+
+# SUS score t-test
+sus_t <- t.test(sus_score ~ condition, data = trust_data %>% filter(condition %in% c("conventional", "voice-story")))
+print(sus_t)
+```
+
+## 5. Primary Analysis: H3 (Decision Accuracy)
+
+```{r h3-accuracy}
+# Decision accuracy by condition
+accuracy_data <- data %>%
+  group_by(condition) %>%
+  summarise(
+    accuracy = mean(decision_correct, na.rm = TRUE) * 100,
+    n = n()
+  )
+
+kable(accuracy_data, digits = 2, caption = "Decision Accuracy by Condition")
+
+# Chi-square test
+chi_sq <- chisq.test(table(data$condition, data$decision_correct))
+print(chi_sq)
+```
+
+## 6. Primary Analysis: H4 (Literacy Moderation)
+
+```{r h4-moderation}
+# Moderation analysis: Condition × Literacy Group
+mod_data <- comp_scores %>%
+  left_join(pre_scores, by = "user_id") %>%
+  left_join(data %>% distinct(user_id, literacy_group), by = "user_id")
+
+# Two-way ANOVA
+mod_anova <- aov(comprehension_score ~ condition * literacy_group + pre_literacy_score, data = mod_data)
+summary(mod_anova)
+
+# Plot interaction
+interaction_plot <- ggplot(mod_data, aes(x = condition, y = comprehension_score, color = literacy_group, group = literacy_group)) +
+  geom_line(stat = "summary", fun = mean, linewidth = 1.2) +
+  geom_point(stat = "summary", fun = mean, size = 3) +
+  labs(title = "Comprehension Score by Condition and Literacy Group",
+       x = "Condition", y = "Mean Comprehension Score") +
+  theme_minimal()
+
+print(interaction_plot)
+```
+
+## 7. Secondary Analysis: Four Conditions ANOVA
+
+```{r secondary-anova}
+# One-way ANOVA for all 4 conditions
+anova_result <- aov(comprehension_score ~ condition, data = comp_scores)
+summary(anova_result)
+
+# Post-hoc Tukey HSD
+tukey_result <- TukeyHSD(anova_result)
+print(tukey_result)
+
+# Visualization
+ggplot(comp_scores, aes(x = condition, y = comprehension_score, fill = condition)) +
+  geom_boxplot() +
+  labs(title = "Comprehension Score Distribution by Condition",
+       x = "Condition", y = "Comprehension Score") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## 8. Secondary Analysis: Task Difficulty
+
+```{r task-difficulty}
+task_difficulty <- data %>%
+  group_by(task_id, condition) %>%
+  summarise(
+    completion_rate = mean(completed, na.rm = TRUE) * 100,
+    mean_time = mean(duration_ms, na.rm = TRUE) / 1000
+  ) %>%
+  ungroup()
+
+ggplot(task_difficulty, aes(x = task_id, y = completion_rate, fill = condition)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Completion Rate by Task and Condition",
+       x = "Task", y = "Completion Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## 9. Secondary Analysis: Voice Recognition Accuracy
+
+```{r voice-accuracy}
+# Calculate WER (Word Error Rate) for transcribed voice inputs
+voice_data <- data %>% filter(!is.na(wer))
+
+wer_summary <- voice_data %>%
+  group_by(condition, language) %>%
+  summarise(
+    mean_wer = mean(wer, na.rm = TRUE),
+    median_wer = median(wer, na.rm = TRUE),
+    n = n()
+  )
+
+kable(wer_summary, digits = 3, caption = "Word Error Rate by Condition and Language")
+
+# Correlation: WER vs. comprehension
+cor_test <- cor.test(voice_data$wer, voice_data$comprehension_score, use = "complete.obs")
+print(cor_test)
+```
+
+## 10. Secondary Analysis: Time to Answer
+
+```{r time-analysis}
+# Survival analysis for task completion time
+library(survival)
+
+# Create survival object (time to completion)
+surv_data <- data %>%
+  mutate(time_seconds = duration_ms / 1000) %>%
+  filter(!is.na(time_seconds))
+
+# Kaplan-Meier curves by condition
+km_fit <- survfit(Surv(time_seconds, completed) ~ condition, data = surv_data)
+plot(km_fit, col = 1:4, lty = 1:4,
+     main = "Task Completion Time by Condition",
+     xlab = "Time (seconds)", ylab = "Probability of Completion")
+legend("bottomright", legend = levels(factor(surv_data$condition)), col = 1:4, lty = 1:4)
+```
+
+## 11. Assumption Checks
+
+```{r assumptions}
+# Normality test (Shapiro-Wilk)
+shapiro.test(residuals(ancova_model))
+
+# Homogeneity of variance (Levene's test)
+library(car)
+leveneTest(comprehension_score ~ condition, data = comp_scores)
+
+# Outlier detection
+outliers <- boxplot.stats(comp_scores$comprehension_score)$out
+cat("Outliers detected:", length(outliers), "\n")
+```
+
+## 12. Missing Data Analysis
+
+```{r missing-data}
+# Missingness pattern
+missing_summary <- data %>%
+  select(comprehension_score, trust_score, sus_score, duration_ms) %>%
+  summarise(across(everything(), ~ sum(is.na(.))))
+
+kable(missing_summary, caption = "Missing Data Summary")
+
+# Exclude participants with >20% missing tasks
+```
+
+## 13. Sensitivity Analysis
+
+```{r sensitivity}
+# Compare complete cases vs. imputed
+complete_cases <- data %>% drop_na(comprehension_score, trust_score, sus_score)
+
+# Report both complete-case and ITT (intention-to-treat) estimates
+```
+
+## 14. Reproducibility
+
+```{r reproducibility}
+sessionInfo()
+```
+
+---
+
+## Analysis Notes
+
+- All tests are two-tailed with α = 0.05.
+- Bonferroni correction applied for multiple comparisons in post-hoc tests.
+- Effect sizes reported: Cohen's d for t-tests, partial η² for ANOVA.
+- Non-parametric alternatives used if normality assumptions violated.
+- All raw data and analysis code will be made available upon publication.

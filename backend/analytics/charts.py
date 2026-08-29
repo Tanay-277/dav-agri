@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
 
-def _series(
-    df: pd.DataFrame, x: str, y: str
-) -> tuple[list[str], list[float]]:
+def _series(df: pd.DataFrame, x: str, y: str) -> tuple[list[str], list[float]]:
     """Aggregate y by x, returning sorted (labels, values)."""
     if x not in df.columns or y not in df.columns:
         return [], []
@@ -24,15 +22,17 @@ def _series(
 
 def line_chart(df: pd.DataFrame) -> dict[str, Any]:
     """Trend analysis: rainfall & temperature over time."""
-    x_col = "date" if "date" in df.columns else ("year" if "year" in df.columns else None)
+    x_col = (
+        "date" if "date" in df.columns else ("year" if "year" in df.columns else None)
+    )
     if x_col is None:
         return {"title": "Trend Analysis", "labels": [], "series": []}
     series = []
     for metric, name in (("rainfall", "Rainfall"), ("temperature", "Temperature")):
-        labels, values = _series(df, x_col, metric)
-        if labels:
-            series.append({"name": name, "labels": labels, "values": values})
-    labels = series[0]["labels"] if series else []
+        s_labels, values = _series(df, x_col, metric)
+        if s_labels:
+            series.append({"name": name, "labels": s_labels, "values": values})
+    labels: list[str] = cast(list[str], series[0]["labels"]) if series else []
     return {"title": "Trend Analysis", "labels": labels, "series": series}
 
 
@@ -63,9 +63,7 @@ def heatmap_data(df: pd.DataFrame) -> dict[str, Any]:
     return {
         "title": "Correlation Matrix",
         "columns": [str(c) for c in corr.columns],
-        "matrix": [
-            [round(float(v), 3) for v in row] for row in corr.values.tolist()
-        ],
+        "matrix": [[round(float(v), 3) for v in row] for row in corr.values.tolist()],
     }
 
 

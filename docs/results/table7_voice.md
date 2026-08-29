@@ -1,0 +1,6 @@
+| Condition         |   Total Tasks (n) |   Voice Tasks (n) | Voice Rate   | Participants Using Voice   |
+|:------------------|------------------:|------------------:|:-------------|:---------------------------|
+| C1: Conventional  |                24 |                 0 | 0.0%         | 0/8                        |
+| C2: Voice + Icons |                24 |                18 | 75.0%        | 8/8                        |
+| C3: Voice Only    |                24 |                18 | 75.0%        | 8/8                        |
+| C4: Voice Story   |                 3 |                 3 | 100.0%       | 1/1                        |

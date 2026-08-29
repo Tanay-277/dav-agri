@@ -2,6 +2,7 @@
 fastapi==0.115.12
 uvicorn[standard]==0.34.2
 python-dotenv==1.1.0
+python-multipart==0.0.32
 
 # Data / analytics
 pandas==2.2.3
@@ -17,5 +18,11 @@ reportlab==4.2.5
 # AI (optional - uncomment once you have a Gemini API key)
 # google-genai==1.5.0
 
-# Dev
+# Speech / TTS
+# faster-whisper==1.0.3
+edge-tts==7.0.0
+
+# Dev / test
 httpx==0.28.1
+pytest==8.3.5
+pytest-asyncio==0.24.0
