@@ -1,0 +1,75 @@
+{
+  "root": {
+    "service": "DAV — Agricultural Intelligence API",
+    "version": "1.0.0",
+    "status": "online",
+    "docs_url": "/docs",
+    "api_v1_docs": "/api/v1/docs",
+    "health_check": "/health"
+  },
+  "health": {
+    "status": "ok",
+    "service": "dav-backend",
+    "version": "1.0.0"
+  },
+  "docs": "HTTP 200 OK (Swagger UI)",
+  "request_otp": {
+    "success": true,
+    "data": {
+      "phone": "9876543210",
+      "expires_in_seconds": 300,
+      "message": "OTP sent successfully"
+    },
+    "error": null
+  },
+  "verify_otp": {
+    "token_type": "bearer",
+    "user_id": "0c83a10b-346b-4c09-8054-b1fbd03a5340"
+  },
+  "current_user": "Raj Patil Verified",
+  "weather": {
+    "location": "Pune, MH",
+    "temp": 23.5,
+    "advisory": "आज हलके पाणी द्या",
+    "is_live": true,
+    "source": "openmeteo"
+  },
+  "voice_samples": {
+    "en": {
+      "sample_text": "Hello, I am your voice assistant.",
+      "audio_len": 26112,
+      "mime_type": "audio/mpeg"
+    },
+    "hi": {
+      "sample_text": "नमस्ते, मैं आपका वॉइस असिस्टेंट हूँ।",
+      "audio_len": 29760,
+      "mime_type": "audio/mpeg"
+    },
+    "mr": {
+      "sample_text": "नमस्कार, मी तुमचा व्हॉइस असिस्टंट आहे।",
+      "audio_len": 34176,
+      "mime_type": "audio/mpeg"
+    }
+  },
+  "voice_synthesize": {
+    "bytes_length": 12528,
+    "content_type": "audio/mpeg"
+  },
+  "query_ai": {
+    "intent": "production_trend",
+    "language": "mr",
+    "source": "mock",
+    "has_viz": true
+  },
+  "farm_analytics": {
+    "crop_count": 5,
+    "total_expense": 145000.0,
+    "breakdown_categories": [
+      "labor",
+      "seeds",
+      "fertilizer",
+      "pesticides"
+    ]
+  },
+  "profile": "Raj Patil Verified"
+}
