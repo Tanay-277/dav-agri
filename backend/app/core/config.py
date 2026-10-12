@@ -78,9 +78,9 @@ def log_startup_configuration():
 
     if settings.ENVIRONMENT.lower() == "production":
         # Production security guards
-        if "dev_secret" in settings.APP_SECRET_KEY or settings.APP_SECRET_KEY == "dav_dev_secret_key_99881122":
+        if "dev_secret" in settings.APP_SECRET_KEY or settings.APP_SECRET_KEY in ("dav_dev_secret_key_99881122", "change_this_to_a_secure_random_key_in_production"):
             raise RuntimeError("CRITICAL SECURITY ERROR: APP_SECRET_KEY must be set to a secure secret in production.")
-        if "dev_jwt" in settings.JWT_SECRET or settings.JWT_SECRET.startswith("dav_dev_jwt_secret"):
+        if "dev_jwt" in settings.JWT_SECRET or settings.JWT_SECRET.startswith("dav_dev_jwt_secret") or settings.JWT_SECRET == "change_to_a_secure_jwt_secret_key_in_production":
             raise RuntimeError("CRITICAL SECURITY ERROR: JWT_SECRET must be set to a secure secret in production.")
         if settings.OTP_PROVIDER == "twilio":
             if not (settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_FROM_NUMBER):

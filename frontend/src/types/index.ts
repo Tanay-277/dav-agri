@@ -1,4 +1,4 @@
-﻿export type LanguageCode = 'en' | 'hi' | 'mr';
+export type LanguageCode = 'en' | 'hi' | 'mr';
 
 export interface User {
   id: string;
@@ -148,3 +148,40 @@ export type ScreenId =
   | 'topic_explanation'
   | 'profile'
   | 'edit_profile';
+
+export interface RobotStatusSummary {
+  robot_id: string;
+  connection_status: 'ONLINE' | 'STALE' | 'DISCONNECTED';
+  last_packet_at?: string;
+  seconds_since_last_packet?: number;
+  gps_fix_acquired: boolean;
+  latitude?: number;
+  longitude?: number;
+  current_temperature_c?: number;
+  current_humidity_pct?: number;
+  total_distance_m: number;
+  battery_voltage?: number;
+  battery_percent?: number;
+  is_battery_low: boolean;
+  obstacle_distance_cm?: number;
+  source: 'live_hardware' | 'simulation';
+}
+
+export interface RobotTelemetryItem {
+  id: string;
+  robot_id: string;
+  temperature_c?: number;
+  humidity_pct?: number;
+  latitude?: number;
+  longitude?: number;
+  gps_fix: boolean;
+  distance_m: number;
+  encoder_pulses: number;
+  battery_voltage?: number;
+  obstacle_distance_cm?: number;
+  device_timestamp?: string;
+  received_at: string;
+  is_stale: boolean;
+  connection_status: string;
+  source: string;
+}

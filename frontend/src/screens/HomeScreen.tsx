@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CloudRain, ShieldAlert, Sprout, Landmark, Mic, Sun } from 'lucide-react';
 import { TopBar } from '../components/common/TopBar';
 import { BottomNav } from '../components/common/BottomNav';
+import { RobotTelemetryCard } from '../components/common/RobotTelemetryCard';
 import { useStore } from '../state/store';
 import { getTranslation } from '../i18n';
 import { weatherService } from '../services/weatherService';
@@ -71,6 +72,9 @@ export const HomeScreen: React.FC = () => {
       <TopBar />
 
       <div className="flex-1 px-6 max-w-md mx-auto w-full flex flex-col justify-between pt-2">
+        {/* Robot Telemetry Monitoring Card (Patent Claims 1, 6, 8, 9, 16) */}
+        <RobotTelemetryCard />
+
         {/* Weather Mini-Card Banner */}
         <div
           onClick={() => store.setScreen('weather')}

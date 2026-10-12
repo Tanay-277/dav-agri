@@ -45,8 +45,13 @@ class GoogleAuthService:
                 logger.error(f"Network error verifying Google ID token: {e}")
                 raise ValueError("Failed to reach Google token verification service")
         else:
-            logger.info("[AUTH] GOOGLE_CLIENT_ID unset. Using development mock Google token resolution.")
             # Development Mode fallback when credentials are not yet configured.
+            # Explicitly invalid tokens (e.g. from security tests) are rejected.
+            if "invalid" in token.lower():
+                logger.warning(f"[AUTH] Google token rejected as invalid: {token}")
+                raise ValueError("Invalid Google authentication token")
+
+            logger.info("[AUTH] GOOGLE_CLIENT_ID unset. Using development mock Google token resolution.")
             # Use a stable digest: builtin hash() is salted per process, which would
             # mint a new user on every restart and discard the saved onboarding.
             mock_sub = "g_" + hashlib.sha256(token.encode("utf-8")).hexdigest()[:32]

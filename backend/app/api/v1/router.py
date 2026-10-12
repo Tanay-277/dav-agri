@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     query,
     voice,
     soil,
+    telemetry,
 )
 
 api_router = APIRouter()
@@ -20,3 +21,4 @@ api_router.include_router(weather.router)
 api_router.include_router(query.router)
 api_router.include_router(voice.router)
 api_router.include_router(soil.router)
+api_router.include_router(telemetry.router)

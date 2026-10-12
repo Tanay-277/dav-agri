@@ -4,6 +4,7 @@ from app.models.profile import Profile
 from app.models.onboarding import OnboardingPreference
 from app.models.farm import Crop, ProductionRecord, ExpenseRecord
 from app.models.query import QueryHistory, WeatherCache
+from app.models.telemetry import RobotTelemetryRecord
 
 __all__ = [
     "Base",
@@ -15,4 +16,5 @@ __all__ = [
     "ExpenseRecord",
     "QueryHistory",
     "WeatherCache",
+    "RobotTelemetryRecord",
 ]
