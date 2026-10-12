@@ -1,0 +1,49 @@
+﻿# Standalone production stack - does NOT inherit dev ports/volumes.
+# Usage: docker compose -f docker-compose.prodonly.yml up -d
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dav-backend-prod
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      HOST: 0.0.0.0
+      PORT: "8000"
+      API_V1_STR: /api/v1
+      CORS_ORIGINS: "https://your-domain.com"
+      DATABASE_URL: sqlite:////data/dav.db
+      APP_SECRET_KEY: "dav_prod_secret_key_A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6"
+      JWT_SECRET: "dav_prod_jwt_secret_A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6"
+      OTP_PROVIDER: mock
+      GOOGLE_CLIENT_ID: "${VITE_GOOGLE_CLIENT_ID:-}"
+      AI_PROVIDER: mock
+      WEATHER_PROVIDER: openmeteo
+    volumes:
+      - dav-data-prod:/data
+    ports:
+      - "8101:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dav-frontend-prod
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8180:80"
+
+volumes:
+  dav-data-prod:

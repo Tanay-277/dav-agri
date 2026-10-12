@@ -39,10 +39,15 @@ app = FastAPI(
 )
 
 # CORS Configuration
+# Credentials (cookies) are only allowed when the origin list is explicit: the
+# CORS spec forbids `Access-Control-Allow-Origin: *` together with credentials,
+# and browsers reject the combination. DAV authenticates with a Bearer token in
+# a header rather than a cookie, so the wildcard case does not need them.
+_CORS_ORIGINS = settings.cors_origins_list
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
+    allow_origins=_CORS_ORIGINS,
+    allow_credentials="*" not in _CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

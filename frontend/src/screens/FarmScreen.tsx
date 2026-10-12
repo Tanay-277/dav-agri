@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Sprout, Grid, Mic, Keyboard, ChevronRight } from 'lucide-react';
 import { TopBar } from '../components/common/TopBar';
 import { BottomNav } from '../components/common/BottomNav';
@@ -7,7 +7,7 @@ import { useStore } from '../state/store';
 import { getTranslation } from '../i18n';
 import { farmService } from '../services/farmService';
 import { queryService } from '../services/queryService';
-import { ConversationHistoryItem } from '../types';
+import { ConversationHistoryItem, StructuredVisualization } from '../types';
 
 export const FarmScreen: React.FC = () => {
   const [state, store] = useStore();
@@ -15,6 +15,9 @@ export const FarmScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'production' | 'land'>('production');
   const [conversations, setConversations] = useState<ConversationHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [landChart, setLandChart] = useState<StructuredVisualization | null>(null);
+  const [landLoading, setLandLoading] = useState(true);
+  const [landError, setLandError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -31,6 +34,37 @@ export const FarmScreen: React.FC = () => {
       isMounted = false;
     };
   }, []);
+
+  const loadLandChart = useCallback(() => {
+    let isMounted = true;
+    setLandLoading(true);
+    farmService
+      .getCropIncomeTrends(state.language)
+      .then((data) => {
+        if (isMounted) {
+          setLandChart(data);
+          setLandError(null);
+        }
+      })
+      .catch((err) => {
+        console.warn('Land chart load failed:', err);
+        if (isMounted) {
+          setLandChart(null);
+          setLandError('Failed to load income trends');
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLandLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [state.language]);
+
+  useEffect(() => {
+    const cleanup = loadLandChart();
+    return cleanup;
+  }, [loadLandChart]);
 
   const handleConversationClick = async (conv: ConversationHistoryItem) => {
     try {
@@ -156,7 +190,10 @@ export const FarmScreen: React.FC = () => {
           </div>
 
           <div onClick={() => store.setScreen('farm_topic')} className="cursor-pointer">
-            <MultiLineChart title={t.multi_crop_income_title} />
+            <MultiLineChart
+              title={t.multi_crop_income_title}
+              data={landLoading || landError ? undefined : (landChart ?? undefined)}
+            />
           </div>
         </div>
       </div>

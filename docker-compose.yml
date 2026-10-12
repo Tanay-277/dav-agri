@@ -1,0 +1,110 @@
+# DAV full-stack development stack.
+#
+# Mobile-first access model (docs/MOBILE.md): the farmer opens a URL in a phone
+# browser. The frontend container serves the app AND proxies /api to the backend
+# on one origin, so no absolute host is embedded and no CORS origin list has to
+# be maintained per device.
+#
+#   Desktop:  http://localhost:8080
+#   Phone:    http://<your-LAN-IP>:8080   (same Wi-Fi)
+#
+# NOTE: microphone capture requires a secure context. Over plain http:// on a LAN
+# IP the browser blocks getUserMedia. See docs/MOBILE.md section 4 for the tunnel.
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dav-backend
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: development
+      DEBUG: "true"
+      HOST: 0.0.0.0
+      PORT: "8000"
+      API_V1_STR: /api/v1
+      # "*" so a phone reaching the backend directly by LAN IP is not blocked -
+      # a phone's address is dynamic and cannot be enumerated ahead of time.
+      # Safe because auth is a Bearer header token, never a cookie.
+      # The normal path is same-origin through nginx and needs no CORS at all.
+      CORS_ORIGINS: "*"
+      # SQLite lives on a named volume so data survives `docker compose down`.
+      DATABASE_URL: sqlite:////data/dav.db
+      # Dev mock OTP. Production guards in app/core/config.py reject the default
+      # secrets when ENVIRONMENT=production.
+      DEV_MOCK_OTP: "44444"
+      OTP_PROVIDER: mock
+      # Must match VITE_GOOGLE_CLIENT_ID. When unset, the backend resolves Google
+      # tokens in development mock mode and cannot verify a real ID token.
+      GOOGLE_CLIENT_ID: "${VITE_GOOGLE_CLIENT_ID:-}"
+      AI_PROVIDER: mock
+      WEATHER_PROVIDER: openmeteo
+    volumes:
+      - dav-data:/data
+    ports:
+      # Host 8001 -> container 8000. The published port is only a convenience for
+      # direct API/Swagger access; the app itself reaches the backend same-origin
+      # via nginx, and /docs is proxied at https://<host>/docs.
+      # 8001 (not 8000) because 8000 is frequently occupied on developer machines.
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+        # Public OAuth client ID. Baked in at build time. Leave empty to use the
+        # development demo sign-in. Must match backend GOOGLE_CLIENT_ID.
+        VITE_GOOGLE_CLIENT_ID: "${VITE_GOOGLE_CLIENT_ID:-}"
+    container_name: dav-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      # 0.0.0.0 so a phone on the same Wi-Fi can reach it.
+      - "8080:80"
+
+  # HTTPS variant. Enable with:  docker compose --profile tls up --build -d
+  # Required for the microphone on a real handset (getUserMedia needs a secure
+  # context). Generate certs first:  ./generate-dev-certs.ps1
+  frontend-tls:
+    profiles: ["tls"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_GOOGLE_CLIENT_ID: "${VITE_GOOGLE_CLIENT_ID:-}"
+    container_name: dav-frontend-tls
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      # Self-signed dev cert, written by generate-dev-certs.ps1
+      - ./certs:/etc/nginx/certs:ro
+      # TLS server config replaces the plain-HTTP one
+      - ./frontend/nginx-tls.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      # 8080 is claimed by the plain-HTTP `frontend` service, so the TLS
+      # variant serves HTTP on 8081 purely to issue its redirect to 8443.
+      - "8081:80"
+      - "8443:443"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "--no-check-certificate", "https://127.0.0.1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  dav-data:

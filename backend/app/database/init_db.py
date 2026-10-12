@@ -1,7 +1,9 @@
-import logging
+﻿import logging
 from sqlalchemy.orm import Session
 from app.database.session import Base, engine, SessionLocal
 from app.models import User, Profile, OnboardingPreference, Crop, ProductionRecord, ExpenseRecord, QueryHistory
+from app.core.config import settings
+from app.core.security import hash_password
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +29,11 @@ def init_db(db: Session) -> None:
         logger.info("Default crops initialized.")
 
     # 3. Seed Demo Farmers (Raj Patil for standard 10-digit numbers and legacy numbers)
+    #    DEMO DATA IS DEVELOPMENT-ONLY. Production must never receive demo users,
+    #    otherwise dev/demo credentials would authenticate against the live DB.
+    if settings.ENVIRONMENT != "development":
+        logger.info("Skipping demo farmer seed (ENVIRONMENT=%s)", settings.ENVIRONMENT)
+        return
     from datetime import date
     demo_phones = [
         ("usr_demo_raj_patil", "86524525856"),
@@ -37,7 +44,7 @@ def init_db(db: Session) -> None:
     for uid, ph in demo_phones:
         existing = db.query(User).filter(User.phone == ph).first()
         if not existing:
-            demo_user = User(id=uid, phone=ph)
+            demo_user = User(id=uid, phone=ph, password_hash=hash_password("password123"))
             db.add(demo_user)
             db.flush()
 

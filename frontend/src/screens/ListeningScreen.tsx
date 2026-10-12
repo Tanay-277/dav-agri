@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pause, Play, Mic, Keyboard, AlertCircle } from 'lucide-react';
+import { Pause, Play, Mic, Keyboard, AlertCircle, Loader2, Send } from 'lucide-react';
 import { TopBar } from '../components/common/TopBar';
 import { IrisSphere } from '../components/common/IrisSphere';
 import { WaveformVisualizer } from '../components/voice/WaveformVisualizer';
@@ -14,23 +14,16 @@ export const ListeningScreen: React.FC = () => {
   const [isManualInput, setIsManualInput] = useState(false);
   const [manualText, setManualText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const defaultSampleQuery =
-    state.language === 'en'
-      ? 'My cotton production was 12 quintals in 2022, 15 in 2023, 18 in 2024, and 21 in 2025. Show me how my production has changed over the years.'
-      : state.language === 'hi'
-      ? 'मेरी कपास उत्पादन 2022 में 12 क्विंटल, 2023 में 15, 2024 में 18 और 2025 में 21 थी। उत्पादन में बदलाव समझाएं।'
-      : 'माझ्या कापूस उत्पादनाची माहिती आणि खर्चाचा तक्ता समजावून सांगा.';
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
     state: voiceState,
     transcript,
     audioLevel,
-    errorMessage,
+    errorMessage: voiceError,
     startRecording,
     stopRecordingAndProcess,
     cancelRecording,
-    setTranscript,
   } = useVoiceRecorder({
     language: state.language,
     onResult: (result) => {
@@ -39,6 +32,7 @@ export const ListeningScreen: React.FC = () => {
     },
     onError: (err) => {
       console.warn('Voice recording fallback available:', err);
+      setErrorMessage(err);
     },
   });
 
@@ -46,17 +40,29 @@ export const ListeningScreen: React.FC = () => {
   const isProcessing =
     voiceState === 'UPLOADING' || voiceState === 'TRANSCRIBING' || voiceState === 'PROCESSING' || isSubmitting;
 
+  // Recording must NOT start automatically. It previously opened the microphone
+  // 400ms after this screen mounted, so the app took the mic without any user
+  // gesture and the first thing a farmer saw was a permission prompt they had
+  // not asked for. The sphere and mic button now both toggle recording.
   useEffect(() => {
-    // Start microphone automatically when entering Listening screen
-    const timer = setTimeout(() => {
-      startRecording();
-    }, 400);
-
     return () => {
-      clearTimeout(timer);
+      // Release the mic if the user navigates away mid-recording.
       cancelRecording();
     };
   }, []);
+
+  // The sphere is the primary control for a voice-first app: tap to start
+  // recording, tap again to stop and get the answer. It previously submitted a
+  // canned query when idle, so tapping the obvious control produced an answer
+  // the farmer never asked for.
+  const handleSphere = () => {
+    if (isProcessing) return;
+    if (isRecording) {
+      handleFinishQuery();
+    } else {
+      startRecording();
+    }
+  };
 
   const handleFinishQuery = async () => {
     if (isProcessing) return;
@@ -70,13 +76,22 @@ export const ListeningScreen: React.FC = () => {
       } finally {
         setIsSubmitting(false);
       }
-    } else {
+    } else if (transcript.trim()) {
+      // Recorded audio produced no usable transcript, so fall back to text.
       handleManualFallbackSubmit();
+    } else {
+      // Nothing was said. Start recording rather than answering an invented
+      // question: a demo answer is worse than a prompt to speak.
+      startRecording();
     }
   };
 
   const handleManualFallbackSubmit = async () => {
-    const textToSubmit = (manualText.trim() || transcript.trim() || defaultSampleQuery);
+    const textToSubmit = manualText.trim() || transcript.trim();
+    if (!textToSubmit) {
+      startRecording();
+      return;
+    }
     setIsSubmitting(true);
     try {
       const result = await queryService.executeQuery(textToSubmit, state.language, 'Cotton');
@@ -84,7 +99,7 @@ export const ListeningScreen: React.FC = () => {
       store.setScreen('processed');
     } catch (err) {
       console.error('Query processing error:', err);
-      store.setScreen('processed');
+      setErrorMessage(t.query_failed);
     } finally {
       setIsSubmitting(false);
     }
@@ -93,11 +108,13 @@ export const ListeningScreen: React.FC = () => {
   const displayText = transcript || (
     isRecording ? (
       state.language === 'mr'
-        ? 'माझ्या कापूस उत्पादनाची माहिती आणि खर्चाचा तक्ता समजावून सांगा .....'
+        ? 'ऐका आहे... बोला'
         : state.language === 'hi'
-        ? 'मेरी कपास उत्पादन और खर्च की स्थिति बताएं .....'
-        : 'Show me my cotton production and expense overview .....'
-    ) : defaultSampleQuery
+        ? 'सुन रहा हूँ... बोलिए'
+        : 'Listening... go ahead and speak'
+    ) : isProcessing
+      ? t.processing
+      : t.tap_mic_to_speak
   );
 
   return (
@@ -112,10 +129,12 @@ export const ListeningScreen: React.FC = () => {
             {isProcessing ? t.processing : isRecording ? t.listening : t.ready}
           </h2>
 
-          {errorMessage && (
-            <div className="flex items-center justify-center gap-1.5 text-xs text-amber-800 bg-amber-100/80 px-3 py-1 rounded-full mt-2">
-              <AlertCircle size={13} />
-              <span>{errorMessage}</span>
+          {/* Recorder errors (mic denied, no speech captured) take priority: the hook
+            owns them and they explain why nothing is happening. */}
+          {(errorMessage || voiceError) && (
+            <div className="flex items-center justify-center gap-1.5 text-xs text-amber-800 bg-amber-100/80 px-3 py-1 rounded-full mt-2 max-w-full text-center">
+              <AlertCircle size={13} className="shrink-0" />
+              <span>{errorMessage || voiceError}</span>
             </div>
           )}
         </div>
@@ -125,7 +144,7 @@ export const ListeningScreen: React.FC = () => {
           <IrisSphere
             size={220}
             isPulsing={isRecording}
-            onClick={handleFinishQuery}
+            onClick={handleSphere}
           />
         </div>
 
@@ -144,21 +163,41 @@ export const ListeningScreen: React.FC = () => {
                 e.preventDefault();
                 handleManualFallbackSubmit();
               }}
-              className="w-full"
+className="w-full flex items-center gap-2"
             >
               <input
                 type="text"
                 autoFocus
+                enterKeyHint="send"
                 value={manualText}
                 onChange={(e) => setManualText(e.target.value)}
-                placeholder={defaultSampleQuery}
-                className="w-full py-2.5 px-4 rounded-2xl bg-white border border-stone-300 text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-800 shadow-sm"
+                placeholder={t.type_your_question}
+                aria-label={t.type_your_question}
+                className="flex-1 min-w-0 py-2.5 px-4 rounded-2xl bg-white border border-stone-300 text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-800 shadow-sm"
               />
+              {/* An explicit send button, not just the Enter key: on a phone the
+                  keyboard's return key is easy to miss, and with no visible
+                  control there was no obvious way to submit. */}
+              <button
+                type="submit"
+                disabled={!manualText.trim() || isProcessing}
+                aria-label={t.ask}
+                className="w-11 h-11 shrink-0 rounded-full bg-stone-800 text-white flex items-center justify-center shadow-sm active:scale-95 transition-transform disabled:opacity-40"
+              >
+                {isProcessing ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
+              </button>
             </form>
           ) : (
-            <p className="text-sm font-semibold text-stone-900 leading-relaxed cursor-pointer" onClick={() => setIsManualInput(true)}>
+            /* Tapping the transcript opens the keyboard, which is the only way
+               to edit or submit by hand. It is labelled as an action rather
+               than looking like static explanatory text. */
+            <button
+              type="button"
+              onClick={() => setIsManualInput(true)}
+              className="w-full text-sm font-semibold text-stone-900 leading-relaxed text-center"
+            >
               {displayText}
-            </p>
+            </button>
           )}
         </div>
 
@@ -167,14 +206,16 @@ export const ListeningScreen: React.FC = () => {
           {/* Pause / Resume Recording */}
           <button
             onClick={() => {
+              if (isProcessing) return;
               if (isRecording) {
-                cancelRecording();
+                handleFinishQuery();
               } else {
                 startRecording();
               }
             }}
             className="w-12 h-12 rounded-full bg-[#d0cac0] hover:bg-[#c4bdb1] flex items-center justify-center text-stone-800 shadow-sm active:scale-95 transition-all"
-            title={isRecording ? 'Pause' : 'Resume'}
+            title={isRecording ? t.stop_recording : t.start_recording}
+            aria-label={isRecording ? t.stop_recording : t.start_recording}
           >
             {isRecording ? <Pause size={18} className="fill-current" /> : <Play size={18} className="fill-current ml-0.5" />}
           </button>
@@ -186,18 +227,19 @@ export const ListeningScreen: React.FC = () => {
             className={`w-16 h-16 rounded-full bg-white border-2 border-stone-300 flex items-center justify-center shadow-float active:scale-95 transition-transform ${
               isProcessing ? 'animate-spin' : isRecording ? 'ring-4 ring-amber-700/30' : ''
             }`}
-            title="Submit Query"
+            aria-label={isRecording ? t.stop_and_send : t.start_recording}
           >
             <Mic size={24} className={isRecording ? 'text-amber-800' : 'text-stone-900'} />
           </button>
 
           {/* Keyboard Toggle */}
           <button
+            type="button"
             onClick={() => setIsManualInput(!isManualInput)}
+            aria-label={t.type_instead}
             className={`w-12 h-12 rounded-full flex items-center justify-center text-stone-800 shadow-sm active:scale-95 transition-all ${
               isManualInput ? 'bg-amber-800 text-white' : 'bg-[#d0cac0] hover:bg-[#c4bdb1]'
             }`}
-            title="Keyboard input"
           >
             <Keyboard size={18} />
           </button>

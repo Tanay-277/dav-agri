@@ -15,7 +15,7 @@ Follow these steps to run the DAV platform locally on your machine.
 
 1. Open a terminal and navigate to the backend directory:
    ```bash
-   cd C:\Users\harsh\.gemini\antigravity\scratch\dav\backend
+   cd backend
    ```
 2. Install Python dependencies:
    ```bash
@@ -43,7 +43,7 @@ Follow these steps to run the DAV platform locally on your machine.
 
 1. Open a second terminal and navigate to the frontend directory:
    ```bash
-   cd C:\Users\harsh\.gemini\antigravity\scratch\dav\frontend
+   cd frontend
    ```
 2. Install dependencies:
    ```bash
@@ -61,12 +61,26 @@ Follow these steps to run the DAV platform locally on your machine.
 
 To run the complete automated test suite on the backend:
 ```bash
-cd C:\Users\harsh\.gemini\antigravity\scratch\dav\backend
+cd backend
 python -m pytest tests/ -v
 ```
 
 To run frontend type checking and production build:
 ```bash
-cd C:\Users\harsh\.gemini\antigravity\scratch\dav\frontend
+cd frontend
 npm.cmd run build
 ```
+
+---
+
+## 5. Testing on a Mobile Browser
+
+DAV is a **mobile-first web app** — farmers open a URL in their phone browser. Opening
+`http://localhost:5173` on a desktop does **not** verify the mobile experience.
+
+See [Mobile-First Web App Contract](MOBILE.md) for the full access model, the current
+blockers (API host resolution, CORS, and the HTTPS requirement for microphone access), and
+the recommended dev-proxy configuration.
+
+Quick version: phone and dev machine on the same Wi-Fi, open the dev server by **LAN IP**
+(not `localhost`), and confirm audio previews play and the microphone records.

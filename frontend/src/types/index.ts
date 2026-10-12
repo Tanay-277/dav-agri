@@ -1,7 +1,8 @@
-export type LanguageCode = 'en' | 'hi' | 'mr';
+﻿export type LanguageCode = 'en' | 'hi' | 'mr';
 
 export interface User {
   id: string;
+  username?: string;
   phone?: string;
   name: string;
   preferred_language: LanguageCode;
@@ -132,9 +133,8 @@ export interface ConversationHistoryItem {
 
 export type ScreenId =
   | 'launch'
-  | 'signup_options'
-  | 'phone'
-  | 'otp'
+  | 'login'
+  | 'register'
   | 'lang_select'
   | 'language_confirm'
   | 'voice_setup'

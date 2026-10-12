@@ -1,0 +1,36 @@
+﻿
+$ curl.exe -m 5 http://127.0.0.1:8001/health
+{"status":"ok","service":"dav-backend","version":"1.0.0"}
+http=200
+
+
+$ curl.exe -m 5 http://127.0.0.1:8001/otp_http
+{"detail":"Not Found"}
+http=404
+
+
+$ curl.exe -m 5 -X POST http://127.0.0.1:8001/login -d phone=9876543210,password=password123
+{"detail":"Not Found"}
+http=404
+
+
+$ curl.exe -m 5 -X POST http://127.0.0.1:8001/login -d phone=9876543210,password=wrong
+{"detail":"Not Found"}
+http=404
+
+
+$ curl.exe -m 5 -H 'Authorization: Bearer [token]' http://127.0.0.1:8001/crop-income?language=en
+{"detail":"Not Found"}
+http=404
+
+
+$ curl.exe -m 5 -H 'Authorization: Bearer [token]' http://127.0.0.1:8001/expenses/breakdown?language=en
+{"detail":"Not Found"}
+http=404
+
+
+$ curl.exe -m 5 -H 'Authorization: Bearer [token]' http://127.0.0.1:8001/weather/current?language=en
+{"detail":"Not Found"}
+http=404
+
+

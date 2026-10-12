@@ -1,27 +1,35 @@
-import { apiRequest } from './apiClient';
+﻿import { apiRequest } from './apiClient';
 import { User } from '../types';
 
 export const authService = {
-  async requestOtp(phone: string) {
-    return apiRequest<{ phone: string; expires_in_seconds: number; message: string }>('/auth/phone/request-otp', {
-      method: 'POST',
-      body: JSON.stringify({ phone }),
-    });
-  },
-
-  async verifyOtp(phone: string, otp: string) {
+  async register(username: string, password: string) {
     const res = await apiRequest<{
       access_token: string;
-      token_type: string;
       user_id: string;
-      phone: string;
+      phone?: string;
       onboarding_completed: boolean;
       preferred_language: string;
-    }>('/auth/phone/verify-otp', {
+    }>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ phone, otp }),
+      body: JSON.stringify({ username, password }),
     });
+    if (res.access_token) {
+      localStorage.setItem('dav_auth_token', res.access_token);
+    }
+    return res;
+  },
 
+  async login(username: string, password: string) {
+    const res = await apiRequest<{
+      access_token: string;
+      user_id: string;
+      phone?: string;
+      onboarding_completed: boolean;
+      preferred_language: string;
+    }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
     if (res.access_token) {
       localStorage.setItem('dav_auth_token', res.access_token);
     }
@@ -38,7 +46,6 @@ export const authService = {
       method: 'POST',
       body: JSON.stringify({ id_token: idToken }),
     });
-
     if (res.access_token) {
       localStorage.setItem('dav_auth_token', res.access_token);
     }
@@ -48,14 +55,15 @@ export const authService = {
   async getCurrentUser(): Promise<User> {
     const data = await apiRequest<{
       user_id: string;
+      username?: string;
       phone?: string;
       name: string;
       preferred_language: 'en' | 'hi' | 'mr';
       onboarding_completed: boolean;
     }>('/auth/me');
-
     return {
       id: data.user_id,
+      username: data.username,
       phone: data.phone,
       name: data.name,
       preferred_language: data.preferred_language,

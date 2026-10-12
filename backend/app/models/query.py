@@ -13,7 +13,7 @@ class QueryHistory(Base):
     query_language = Column(String(10), nullable=False, default="mr")
     intent = Column(String(50), nullable=True)
     answer_text = Column(Text, nullable=False)
-    visualization_data = Column(Text, nullable=True)  # JSON-encoded chart structure
+    visualization_data = Column(Text, nullable=True)
     audio_url = Column(String(255), nullable=True)
     is_saved = Column(Boolean, default=False)
     share_token = Column(String(64), unique=True, nullable=True, index=True)
@@ -23,6 +23,14 @@ class QueryHistory(Base):
 
 class WeatherCache(Base):
     __tablename__ = "weather_cache"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    location_key = Column(String(100), unique=True, nullable=False, index=True)
+    cached_data = Column(Text, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+
+class SoilCache(Base):
+    __tablename__ = "soil_cache"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     location_key = Column(String(100), unique=True, nullable=False, index=True)

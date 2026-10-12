@@ -3,6 +3,7 @@ import { Volume2, Share2, Mic, Send, Check } from 'lucide-react';
 import { TopBar } from '../components/common/TopBar';
 import { StackedBarChart } from '../components/charts/StackedBarChart';
 import { DonutChart } from '../components/charts/DonutChart';
+import { LineChart } from '../components/charts/LineChart';
 import { useStore } from '../state/store';
 import { getTranslation } from '../i18n';
 import { voiceService } from '../services/voiceService';
@@ -78,7 +79,7 @@ export const ProcessedResultScreen: React.FC = () => {
     }
   };
 
-  const isDonut = result?.visualization?.type === 'donut';
+  const vizType = result?.visualization?.type;
 
   return (
     <div className="w-full min-h-screen bg-[#e8e5df] flex flex-col justify-between pb-4 select-none">
@@ -97,7 +98,12 @@ export const ProcessedResultScreen: React.FC = () => {
 
         {/* Structured Chart Card */}
         <div>
-          {isDonut ? (
+          {vizType === 'line' ? (
+            <LineChart
+              data={result?.visualization}
+              title={result?.visualization?.title || t.income_by_crop}
+            />
+          ) : vizType === 'donut' ? (
             <DonutChart />
           ) : (
             <StackedBarChart

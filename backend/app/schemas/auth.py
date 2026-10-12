@@ -1,17 +1,13 @@
-from typing import Optional
+﻿from typing import Optional
 from pydantic import BaseModel, Field
 
-class RequestOtpRequest(BaseModel):
-    phone: str = Field(..., min_length=8, max_length=20, description="Farmer phone number")
+class RegisterRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50, description="Phone number or chosen username")
+    password: str = Field(..., min_length=6, max_length=128, description="Login password")
 
-class RequestOtpResponse(BaseModel):
-    phone: str
-    expires_in_seconds: int
-    message: str
-
-class VerifyOtpRequest(BaseModel):
-    phone: str = Field(..., min_length=8, max_length=20)
-    otp: str = Field(..., min_length=4, max_length=8)
+class LoginRequest(BaseModel):
+    username: str = Field(..., description="Phone number or username")
+    password: str = Field(..., description="Login password")
 
 class GoogleAuthRequest(BaseModel):
     id_token: str
@@ -26,6 +22,7 @@ class TokenResponse(BaseModel):
 
 class CurrentUserResponse(BaseModel):
     user_id: str
+    username: Optional[str] = None
     phone: Optional[str] = None
     google_id: Optional[str] = None
     name: str = "Raj Patil"

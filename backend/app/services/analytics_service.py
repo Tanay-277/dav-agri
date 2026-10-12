@@ -172,35 +172,67 @@ class AnalyticsService:
         )
 
     def generate_crop_income_line_visualization(self, user_id: str, language: str = "mr") -> StructuredVisualization:
+        from app.models.farm import Crop
+
         clean_lang = language.lower().strip()
         title_map = {
             "en": "Income from Different Crops",
             "hi": "विभिन्न फसलों से प्राप्त आय",
             "mr": "वेगवेगळ्या पिकांमधून मिळालेले उत्पन्न",
         }
-        months_map = {
-            "en": ["May", "June", "July", "Aug", "Sept"],
-            "hi": ["मई", "जून", "जुलाई", "अगस्त", "सितंबर"],
-            "mr": ["मे", "जून", "जुलै", "ऑगस्ट", "सप्टेंबर"],
-        }
-        crops_map = {
-            "en": ["Cotton", "Wheat", "Ragi", "Soybean"],
-            "hi": ["कपास", "गेहूं", "रागी", "सोयाबीन"],
-            "mr": ["कापूस", "गहू", "नाचणी", "सोयाबीन"],
-        }
-        crops = crops_map.get(clean_lang, crops_map["mr"])
-        months = months_map.get(clean_lang, months_map["mr"])
         unit_str = "INR (Thousands)" if clean_lang == "en" else "रुपये (हजार)"
+        palette = ["#f97316", "#06b6d4", "#a855f7", "#3b82f6", "#eab308", "#14b8a6", "#ef4444", "#8b5cf6"]
+
+        records = self.farm_repo.list_production_by_user(user_id)
+
+        # Group the user's production records by crop_id, then by year, summing revenue_inr
+        revenue_by_crop: Dict[str, Dict[int, float]] = {}
+        years_set = set()
+        for r in records:
+            crop_totals = revenue_by_crop.setdefault(r.crop_id, {})
+            crop_totals[r.year] = crop_totals.get(r.year, 0.0) + float(r.revenue_inr)
+            years_set.add(r.year)
+
+        if not revenue_by_crop:
+            # Fallback: deterministic skeleton so charts never render empty
+            skeleton_crops = [
+                ("Cotton", "कपास", "कापूस"),
+                ("Wheat", "गेहूं", "गहू"),
+                ("Ragi", "रागी", "नाचणी"),
+                ("Soybean", "सोयाबीन", "सोयाबीन"),
+            ]
+            name_idx = {"en": 0, "hi": 1, "mr": 2}.get(clean_lang, 2)
+            labels = ["2021", "2022", "2023", "2024", "2025"]
+            skeleton_data = [80, 90, 110, 120, 152]
+            datasets = [
+                ChartDataset(
+                    name=crop[name_idx],
+                    color=palette[i % len(palette)],
+                    data=list(skeleton_data),
+                )
+                for i, crop in enumerate(skeleton_crops)
+            ]
+        else:
+            # Real production data: labels = sorted distinct years, one dataset per crop
+            sorted_years = sorted(years_set)
+            labels = [str(y) for y in sorted_years]
+            datasets = []
+            for idx, (crop_id, totals) in enumerate(revenue_by_crop.items()):
+                crop: Optional[Crop] = self.farm_repo.get_crop_by_id(crop_id)
+                if crop is not None:
+                    name_map = {"en": crop.name_en, "hi": crop.name_hi, "mr": crop.name_mr}
+                    name = name_map.get(clean_lang, crop.name_mr)
+                else:
+                    name = crop_id
+                data = [round(totals.get(y, 0.0) / 1000.0, 2) for y in sorted_years]
+                datasets.append(
+                    ChartDataset(name=name, color=palette[idx % len(palette)], data=data)
+                )
 
         return StructuredVisualization(
             type="line",
             title=title_map.get(clean_lang, title_map["mr"]),
             unit=unit_str,
-            labels=months,
-            datasets=[
-                ChartDataset(name=crops[0], color="#f97316", data=[2200, 2400, 3100, 2600, 2800]),
-                ChartDataset(name=crops[1], color="#06b6d4", data=[1500, 1800, 2100, 1900, 2200]),
-                ChartDataset(name=crops[2], color="#a855f7", data=[1100, 1300, 1600, 1400, 1700]),
-                ChartDataset(name=crops[3], color="#3b82f6", data=[700, 950, 1200, 1100, 1350])
-            ]
+            labels=labels,
+            datasets=datasets
         )

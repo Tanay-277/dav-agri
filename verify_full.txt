@@ -1,0 +1,58 @@
+﻿===== STEP 1: HEALTH CHECK =====
+{"status":"ok","service":"dav-backend","version":"1.0.0"}
+===== STEP 2: LOGIN DEMO =====
+{"success":false,"data":null,"error":{"code":"VALIDATION_ERROR","message":"Request input validation failed","details":{"errors":[{"loc":["body",1],"msg":"JSON decode error","type":"json_invalid"}]}}}
+===== STEP 2: LOGIN DEMO =====
+curl.exe -s -m 5 -X POST http://127.0.0.1:8001/api/v1/auth/login -H "Content-Type: application/json" -d '{"username":"9876543210","password":"password123"}'
+{"success":false,"data":null,"error":{"code":"VALIDATION_ERROR","message":"Request input validation failed","details":{"errors":[{"loc":["body",1],"msg":"JSON decode error","type":"json_invalid"}]}}}
+===== STEP 2: LOGIN DEMO =====
+curl.exe -s -m 5 -X POST http://127.0.0.1:8001/api/v1/auth/login -H "Content-Type: application/json" -d @C:\Users\Admin\AppData\Local\Temp\tmp590B.tmp
+{"success":true,"data":{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZGVtb19yYWpfcGF0aWxfMTAiLCJ1c2VybmFtZSI6Ijk4NzY1NDMyMTAiLCJsYW5nIjoibXIiLCJleHAiOjE3OTE5OTE2MDN9.d_4QLqSluCZ1gWT3CWUkz1DjtD1Aw4pKjTzA5ZBkJ7U","token_type":"bearer","user_id":"usr_demo_raj_patil_10","phone":"9876543210","onboarding_completed":true,"preferred_language":"mr"},"error":null}
+{"success":true,"data":{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZGVtb19yYWpfcGF0aWxfMTAiLCJ1c2VybmFtZSI6Ijk4NzY1NDMyMTAiLCJsYW5nIjoibXIiLCJleHAiOjE3OTE5OTE2MzF9.4eifCa4bVpc-tnd73uczDUoIvMJRN6XDwCcFIBRbha4","token_type":"bearer","user_id":"usr_demo_raj_patil_10","phone":"9876543210","onboarding_completed":true,"preferred_language":"mr"},"error":null}
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZGVtb19yYWpfcGF0aWxfMTAiLCJ1c2VybmFtZSI6Ijk4NzY1NDMyMTAiLCJsYW5nIjoibXIiLCJleHAiOjE3OTE5OTE2MzF9.4eifCa4bVpc-tnd73uczDUoIvMJRN6XDwCcFIBRbha4
+===== STEP 3: CROP INCOME (language=en) =====
+curl.exe -s -m 5 http://127.0.0.1:8001/api/v1/crop-income?language=en -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZGVtb19yYWpfcGF0aWxfMTAiLCJ1c2VybmFtZSI6Ijk4NzY1NDMyMTAiLCJsYW5nIjoibXIiLCJleHAiOjE3OTE5OTE2NjZ9.rt5zOOHFN6e3MptL0P3KOgz_G3jTyf4Y-IYYNlGpTrM"
+{"detail":"Not Found"}
+===== STEP 4: EXPENSES BREAKDOWN (language=en) =====
+curl.exe -s -m 5 http://127.0.0.1:8001/api/v1/expenses/breakdown?language=en -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZGVtb19yYWpfcGF0aWxfMTAiLCJ1c2VybmFtZSI6Ijk4NzY1NDMyMTAiLCJsYW5nIjoibXIiLCJleHAiOjE3OTE5OTE2NjZ9.rt5zOOHFN6e3MptL0P3KOgz_G3jTyf4Y-IYYNlGpTrM"
+{"detail":"Not Found"}
+===== STEP 5: WEATHER CURRENT (language=en) =====
+curl.exe -s -m 5 http://127.0.0.1:8001/api/v1/weather/current?language=en -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZGVtb19yYWpfcGF0aWxfMTAiLCJ1c2VybmFtZSI6Ijk4NzY1NDMyMTAiLCJsYW5nIjoibXIiLCJleHAiOjE3OTE5OTE2NjZ9.rt5zOOHFN6e3MptL0P3KOgz_G3jTyf4Y-IYYNlGpTrM"
+{"success":true,"data":{"location":"Pune, MH","temperature_c":28.5,"condition":"Rain","expected_rainfall_mm":40.0,"duration_hours":3,"intensity":"heavy","intensity_level":3,"irrigation_needed":false,"irrigation_advisory_en":"No irrigation needed today","irrigation_advisory_hi":"आज सिंचाई की ज़रूरत नहीं है","irrigation_advisory_mr":"आज शेतात पाणी देण्याची गरज नाही","advisory":"No irrigation needed today","language":"en","is_live":true,"source":"openmeteo","time_slots":[{"period":"morning","label_en":"Morning","label_hi":"सुबह","label_mr":"सकाळ","temp_c":24.0,"condition":"sunny_cloud","rain_probability":20},{"period":"afternoon","label_en":"Afternoon","label_hi":"दोपहर","label_mr":"दुपार","temp_c":27.0,"condition":"rain","rain_probability":85},{"period":"evening","label_en":"Evening","label_hi":"शाम","label_mr":"संध्याकाळ","temp_c":25.0,"condition":"rain_sun","rain_probability":70},{"period":"night","label_en":"Night","label_hi":"रात","label_mr":"रात्र","temp_c":22.0,"condition":"cloud","rain_probability":30}]},"error":null}
+===== STEP 6: SOIL PROFILE (language=en&lat=18.5204&lon=73.8567) =====
+curl.exe -s -m 5 "http://127.0.0.1:8001/api/v1/soil/profile?language=en&lat=18.5204&lon=73.8567" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZGVtb19yYWpfcGF0aWxfMTAiLCJ1c2VybmFtZSI6Ijk4NzY1NDMyMTAiLCJsYW5nIjoibXIiLCJleHAiOjE3OTE5OTE2NjZ9.rt5zOOHFN6e3MptL0P3KOgz_G3jTyf4Y-IYYNlGpTrM"
+{"detail":"Not Found"}
+===== VERIFY_DONE =====
+===== STEP 3 (CORRECTED): CROP INCOME /api/v1/farm/analytics/crop-income?language=en =====
+curl.exe -s -m 5 "http://127.0.0.1:8001/api/v1/farm/analytics/crop-income?language=en" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZGVtb19yYWpfcGF0aWxfMTAiLCJ1c2VybmFtZSI6Ijk4NzY1NDMyMTAiLCJsYW5nIjoibXIiLCJleHAiOjE3OTE5OTE4NTl9.Ncxd392w17QAxX9qRaKt9drfUr6so_Jl7ZpSB-AMdew"
+{"success":true,"data":{"type":"line","title":"Income from Different Crops","unit":"INR (Thousands)","labels":["2021","2022","2023","2024","2025"],"datasets":[{"name":"Cotton","color":"#f97316","data":[60.0,78.0,105.0,135.0,168.0]},{"name":"Wheat","color":"#06b6d4","data":[0.0,0.0,0.0,62.5,75.6]},{"name":"Ragi","color":"#a855f7","data":[0.0,0.0,0.0,49.0,0.0]}],"raw_data":null},"error":null}
+===== STEP 4 (CORRECTED): EXPENSES BREAKDOWN /api/v1/farm/expenses/breakdown?language=en =====
+curl.exe -s -m 5 "http://127.0.0.1:8001/api/v1/farm/expenses/breakdown?language=en" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZGVtb19yYWpfcGF0aWxfMTAiLCJ1c2VybmFtZSI6Ijk4NzY1NDMyMTAiLCJsYW5nIjoibXIiLCJleHAiOjE3OTE5OTE4NTl9.Ncxd392w17QAxX9qRaKt9drfUr6so_Jl7ZpSB-AMdew"
+{"success":true,"data":{"total_expense_inr":100000.0,"breakdown":[{"category":"labor","label_en":"Labor","label_hi":"मजदूरी","label_mr":"मजुरी","amount_inr":40000.0,"percentage":40.0,"color":"#8b5cf6"},{"category":"seeds","label_en":"Seeds","label_hi":"बीज","label_mr":"बियाणे","amount_inr":25000.0,"percentage":25.0,"color":"#eab308"},{"category":"fertilizer","label_en":"Fertilizer","label_hi":"खाद","label_mr":"खत","amount_inr":20000.0,"percentage":20.0,"color":"#f97316"},{"category":"pesticides","label_en":"Pesticides","label_hi":"कीटनाशक","label_mr":"कीटकनाशके","amount_inr":15000.0,"percentage":15.0,"color":"#14b8a6"}],"labels":["Labor","Seeds","Fertilizer","Pesticides"],"percentages":[40.0,25.0,20.0,15.0],"colors":["#8b5cf6","#eab308","#f97316","#14b8a6"]},"error":null}
+===== STEP 6: SOIL PROFILE /api/v1/soil/profile?language=en&lat=18.5204&lon=73.8567 (new endpoint) =====
+curl.exe -s -m 5 "http://127.0.0.1:8001/api/v1/soil/profile?language=en&lat=18.5204&lon=73.8567" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZGVtb19yYWpfcGF0aWxfMTAiLCJ1c2VybmFtZSI6Ijk4NzY1NDMyMTAiLCJsYW5nIjoibXIiLCJleHAiOjE3OTE5OTE4NTl9.Ncxd392w17QAxX9qRaKt9drfUr6so_Jl7ZpSB-AMdew"
+{"detail":"Not Found"}
+===== STEP 5b: WEATHER CURRENT (lat=18.5204&lon=73.8567 - different cache key) =====
+curl.exe -s -m 5 "http://127.0.0.1:8001/api/v1/weather/current?language=en&lat=18.5204&lon=73.8567" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZGVtb19yYWpfcGF0aWxfMTAiLCJ1c2VybmFtZSI6Ijk4NzY1NDMyMTAiLCJsYW5nIjoibXIiLCJleHAiOjE3OTE5OTE5ODd9.SRuF38eGPf-JoKTuQA-5Grv5GPxB0Ix8EcvwWwPfOu0"
+{"success":true,"data":{"location":"Pune, MH","temperature_c":28.1,"condition":"Rain","expected_rainfall_mm":40.0,"duration_hours":3,"intensity":"heavy","intensity_level":3,"irrigation_needed":false,"irrigation_advisory_en":"No irrigation needed today","irrigation_advisory_hi":"आज सिंचाई की ज़रूरत नहीं है","irrigation_advisory_mr":"आज शेतात पाणी देण्याची गरज नाही","advisory":"No irrigation needed today","language":"en","is_live":true,"source":"openmeteo","time_slots":[{"period":"morning","label_en":"Morning","label_hi":"सुबह","label_mr":"सकाळ","temp_c":24.0,"condition":"sunny_cloud","rain_probability":20},{"period":"afternoon","label_en":"Afternoon","label_hi":"दोपहर","label_mr":"दुपार","temp_c":27.0,"condition":"rain","rain_probability":85},{"period":"evening","label_en":"Evening","label_hi":"शाम","label_mr":"संध्याकाळ","temp_c":25.0,"condition":"rain_sun","rain_probability":70},{"period":"night","label_en":"Night","label_hi":"रात","label_mr":"रात्र","temp_c":22.0,"condition":"cloud","rain_probability":30}]},"error":null}
+===== VERIFICATION SUMMARY =====
+1) HEALTH: OK - {"status":"ok","service":"dav-backend","version":"1.0.0"}
+2) LOGIN: OK - token obtained for user 9876543210
+3) CROP INCOME: OK (after URL correction) - endpoint is /api/v1/farm/analytics/crop-income, NOT /api/v1/crop-income
+   Returns line chart data with Cotton/Wheat/Ragi datasets (INR Thousands)
+4) EXPENSES BREAKDOWN: OK (after URL correction) - endpoint is /api/v1/farm/expenses/breakdown, NOT /api/v1/expenses/breakdown
+   Returns breakdown: Labor 40%, Seeds 25%, Fertilizer 20%, Pesticides 15% (total 100000 INR)
+5) WEATHER CURRENT: PARTIAL - returns data with source="openmeteo" but MISSING enhanced fields:
+   - soil_moisture_profile: NOT present (expected per openmeteo_provider.py:78-80, soil.py:32)
+   - et0_mm: NOT present (expected per openmeteo_provider.py:85-87, weather.py:34)
+   - Also missing: vpd_kpa, solar_radiation_w_m2, relative_humidity, wind_speed_ms, precipitation_probability, weather_code
+   Root cause: Docker container has code baked into image (no source volume mount). Running server uses older openmeteo_provider.py that doesn't populate enhanced fields. Container needs rebuild: docker compose build && docker compose up -d
+6) SOIL PROFILE: 404 NOT FOUND - /api/v1/soil/profile is NOT registered on running server
+   Root cause: Same as #5. The soil router exists in repo code (backend/app/api/v1/endpoints/soil.py) but container was built before soil router was added to router.py:22. Needs rebuild.
+7) VERIFY_DONE
+
+NOTE: All endpoint paths verified against openapi.json registered routes:
+  - /api/v1/farm/analytics/crop-income [GET]
+  - /api/v1/farm/expenses/breakdown [GET]
+  - /api/v1/weather/current [GET] (works, but stale data)
+  - /api/v1/soil/profile is NOT in registered routes (not deployed)

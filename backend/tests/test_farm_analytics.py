@@ -1,10 +1,9 @@
-import pytest
-from app.core.config import settings
+﻿import pytest
 
 def get_demo_auth_token(client):
-    phone = "86524525856"
-    client.post("/api/v1/auth/phone/request-otp", json={"phone": phone})
-    res = client.post("/api/v1/auth/phone/verify-otp", json={"phone": phone, "otp": settings.DEV_MOCK_OTP})
+    # Login with demo user credentials (password123 from init_db)
+    res = client.post("/api/v1/auth/login", json={"username": "86524525856", "password": "password123"})
+    assert res.status_code == 200
     return res.json()["data"]["access_token"]
 
 def test_list_crops(client):
@@ -66,17 +65,23 @@ def test_crop_income_line_chart(client):
     assert res.status_code == 200
     chart = res.json()["data"]
     assert chart["type"] == "line"
-    assert "मे" in chart["labels"]
+    # Real production years (demo farmer has records from 2021-2025)
+    assert "2021" in chart["labels"]
     assert len(chart["datasets"]) >= 3
+    # Cotton 2021 revenue = 60000 INR -> 60.0 thousand
+    cotton = next(ds for ds in chart["datasets"] if ds["name"] == "कापूस")
+    assert cotton["data"][chart["labels"].index("2021")] == 60.0
 
     # English query param
     res_en = client.get("/api/v1/farm/analytics/crop-income?language=en", headers=headers)
     assert res_en.status_code == 200
     chart_en = res_en.json()["data"]
-    assert "May" in chart_en["labels"]
+    assert "2021" in chart_en["labels"]
+    assert chart_en["datasets"][0]["name"] == "Cotton"
 
     # Hindi query param
     res_hi = client.get("/api/v1/farm/analytics/crop-income?language=hi", headers=headers)
     assert res_hi.status_code == 200
     chart_hi = res_hi.json()["data"]
-    assert "मई" in chart_hi["labels"]
+    assert "2021" in chart_hi["labels"]
+    assert chart_hi["datasets"][0]["name"] == "कपास"

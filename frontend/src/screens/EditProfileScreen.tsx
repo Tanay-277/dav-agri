@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Edit2,
   Check,
+  X,
 } from 'lucide-react';
 import { TopBar } from '../components/common/TopBar';
 import { BottomNav } from '../components/common/BottomNav';
@@ -29,6 +30,7 @@ export const EditProfileScreen: React.FC = () => {
   const [cropsGrown, setCropsGrown] = useState<string[]>(['Cotton', 'Wheat', 'Ragi']);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (state.profile) {
@@ -66,17 +68,28 @@ export const EditProfileScreen: React.FC = () => {
         store.setScreen('profile');
       }, 1000);
     } catch (err) {
-      console.warn('Update failed:', err);
+      // A silent failure here would look like the save worked. Say it did not.
+      setNotice(t.save_failed);
+      setTimeout(() => setNotice(null), 3000);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleAddCropTag = () => {
-    const cropName = prompt('Enter additional crop name:');
-    if (cropName && !cropsGrown.includes(cropName.trim())) {
-      setCropsGrown([...cropsGrown, cropName.trim()]);
+  const [newCrop, setNewCrop] = useState('');
+
+  // Adding a crop used to call window.prompt(), which is blocked or ignored in
+  // some mobile browsers and in an installed PWA. It is a real inline field now.
+  const handleAddCrop = () => {
+    const cropName = newCrop.trim();
+    if (cropName && !cropsGrown.includes(cropName)) {
+      setCropsGrown([...cropsGrown, cropName]);
     }
+    setNewCrop('');
+  };
+
+  const handleRemoveCrop = (crop: string) => {
+    setCropsGrown(cropsGrown.filter((c) => c !== crop));
   };
 
   return (
@@ -88,10 +101,16 @@ export const EditProfileScreen: React.FC = () => {
         {/* Avatar with Edit Image button */}
         <div className="flex flex-col items-center gap-1.5 pt-1">
           <FarmerAvatar size={100} />
-          <button
-            type="button"
-            className="flex items-center gap-1.5 text-stone-800 text-xs font-semibold hover:text-stone-900 mt-1"
-          >
+{/* Edit Image has no upload backend yet, so it reports that instead of
+              accepting a tap and doing nothing. */}
+            <button
+              type="button"
+              onClick={() => {
+                setNotice(t.not_available_yet);
+                setTimeout(() => setNotice(null), 2500);
+              }}
+              className="flex items-center gap-1.5 text-stone-800 text-xs font-semibold hover:text-stone-900 mt-1"
+            >
             <Edit2 size={13} />
             <span>{t.edit_image}</span>
           </button>
@@ -215,24 +234,54 @@ export const EditProfileScreen: React.FC = () => {
           <div className="flex flex-col gap-1.5 mb-2">
             <label className="text-[11px] font-semibold text-stone-700">{t.crops_grown}</label>
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Each crop is removable: "+" alone could only ever add, so a mistaken
+                  entry was impossible to correct without editing the whole profile. */}
               {cropsGrown.map((crop, idx) => (
-                <span
-                  key={idx}
-                  className="py-1.5 px-4 rounded-full bg-white border border-stone-300 text-stone-900 text-xs font-semibold shadow-sm"
+                <button
+                  key={`${crop}-${idx}`}
+                  type="button"
+                  onClick={() => handleRemoveCrop(crop)}
+                  aria-label={`${t.remove} ${crop}`}
+                  className="py-1.5 pl-4 pr-3 rounded-full bg-white border border-stone-300 text-stone-900 text-xs font-semibold shadow-sm flex items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  {crop}
-                </span>
+                  <span>{crop}</span>
+                  <X size={12} className="text-stone-500" />
+                </button>
               ))}
-              <button
-                type="button"
-                onClick={handleAddCropTag}
-                className="py-1.5 px-3 rounded-full bg-stone-300/80 hover:bg-stone-300 text-stone-800 text-xs font-bold"
-              >
-                +
-              </button>
+
+              <input
+                type="text"
+                value={newCrop}
+                onChange={(e) => setNewCrop(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCrop();
+                  }
+                }}
+                placeholder={t.add_crop}
+                aria-label={t.add_crop}
+                className="py-1.5 px-3 rounded-full bg-white border border-stone-300 text-stone-900 text-xs font-semibold w-32 focus:outline-none focus:ring-2 focus:ring-stone-400"
+              />
+
+              {newCrop.trim() && (
+                <button
+                  type="button"
+                  onClick={handleAddCrop}
+                  className="py-1.5 px-3 rounded-full bg-stone-800 text-white text-xs font-bold active:scale-95 transition-transform"
+                >
+                  {t.add}
+                </button>
+              )}
             </div>
           </div>
         </div>
+
+        {notice && (
+          <div className="text-center text-xs text-stone-700 bg-stone-200/80 py-2 px-3 rounded-xl">
+            {notice}
+          </div>
+        )}
 
         {/* Save Changes Button */}
         <button

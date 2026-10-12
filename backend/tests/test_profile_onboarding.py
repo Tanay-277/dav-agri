@@ -1,13 +1,18 @@
-import pytest
-from app.core.config import settings
+﻿import pytest
 
-def get_auth_token(client, phone="86524525856"):
-    client.post("/api/v1/auth/phone/request-otp", json={"phone": phone})
-    res = client.post("/api/v1/auth/phone/verify-otp", json={"phone": phone, "otp": settings.DEV_MOCK_OTP})
+def get_auth_token(client, username="9876543210", password="password123"):
+    """Helper to register (if needed) and login, returning access token."""
+    # Try login first (for demo users already in DB)
+    res = client.post("/api/v1/auth/login", json={"username": username, "password": password})
+    if res.status_code == 200:
+        return res.json()["data"]["access_token"]
+    # Otherwise register new user
+    res = client.post("/api/v1/auth/register", json={"username": username, "password": password})
+    assert res.status_code == 200
     return res.json()["data"]["access_token"]
 
 def test_onboarding_lifecycle(client):
-    token = get_auth_token(client, phone="9911223344")
+    token = get_auth_token(client, username="newuser_onboard", password="password123")
     headers = {"Authorization": f"Bearer {token}"}
 
     # 1. Check initial status
@@ -27,7 +32,8 @@ def test_onboarding_lifecycle(client):
     assert complete_res.json()["data"]["voice_confirmed"] is True
 
 def test_profile_read_and_update(client):
-    token = get_auth_token(client, phone="86524525856")
+    # Use demo user from init_db (password123)
+    token = get_auth_token(client, username="86524525856", password="password123")
     headers = {"Authorization": f"Bearer {token}"}
 
     # Read profile
@@ -54,10 +60,10 @@ def test_profile_read_and_update(client):
     assert "Soybean" in updated_p["crops_grown"]
 
 def test_user_data_isolation(client):
-    # User A token
-    token_a = get_auth_token(client, phone="1111111111")
-    # User B token
-    token_b = get_auth_token(client, phone="2222222222")
+    # User A
+    token_a = get_auth_token(client, username="user_a_isolation", password="password123")
+    # User B
+    token_b = get_auth_token(client, username="user_b_isolation", password="password123")
 
     # User A modifies name
     client.put("/api/v1/profile", json={"name": "Farmer Alpha"}, headers={"Authorization": f"Bearer {token_a}"})

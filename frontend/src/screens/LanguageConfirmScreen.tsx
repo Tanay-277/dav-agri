@@ -10,6 +10,16 @@ export const LanguageConfirmScreen: React.FC = () => {
   const t = getTranslation(state.language);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // Stop before a new play. Without this, returning to this screen after
+  // choosing a different language left the previous clip playing, so the
+  // farmer heard one language while the screen claimed to be testing another.
+  useEffect(() => {
+    voiceService.stopActiveAudio();
+    return () => {
+      voiceService.stopActiveAudio();
+    };
+  }, [state.language]);
+
   const playVerificationAudio = async () => {
     setIsPlaying(true);
     try {
@@ -28,11 +38,9 @@ export const LanguageConfirmScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    // Play test phrase when entering screen
+    // Play the test phrase when entering the screen, so the farmer does not have
+    // to tap anything to hear it.
     playVerificationAudio();
-    return () => {
-      voiceService.stopActiveAudio();
-    };
   }, [state.language]);
 
   return (

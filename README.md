@@ -59,6 +59,7 @@ cd frontend && npm.cmd run build
 
 ## 📚 Documentation Directory
 
+* [Mobile-First Web App Contract](docs/MOBILE.md) — **primary access model: a URL opened on a phone**
 * [Architecture Audit](docs/ARCHITECTURE_AUDIT.md)
 * [Figma 17-Screen Feature Map](docs/FIGMA_FEATURE_MAP.md)
 * [System Architecture](docs/ARCHITECTURE.md)

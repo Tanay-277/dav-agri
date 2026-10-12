@@ -1,0 +1,18 @@
+node_modules/
+dist/
+dist-ssr/
+.vite/
+
+.env
+.env.*
+!.env.example
+
+npm-debug.log*
+yarn-error.log*
+
+# Note: public/ (manifest, service worker, PWA icons) MUST stay in the build
+# context - it is copied to the nginx html root.
+scripts/
+
+Dockerfile
+.dockerignore

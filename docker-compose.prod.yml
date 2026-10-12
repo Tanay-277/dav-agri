@@ -1,0 +1,125 @@
+﻿# Production docker-compose for the DAV stack.
+# Standalone file - does NOT inherit the dev docker-compose.yml.
+# Usage: docker compose -f docker-compose.prod.yml up -d
+#
+# Environment variables are sourced from .env.production via env_file.
+# Before first run, create .env.production and fill in real production values
+# (secrets, Twilio creds, Gemini key, Google OAuth client, and the public
+# domain used for CORS). See .env.example for the full list of keys.
+#
+# Required before first run:
+#   1. Create .env.production with real production secrets.
+#   2. docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL production database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: dav-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-dav_db}"
+      POSTGRES_USER: "${POSTGRES_USER:-dav_user}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-dav_password}"
+    volumes:
+      - postgres-prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dav_user -d dav_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+  # ---------------------------------------------------------------------------
+  # Backend API service
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dav-backend-prod
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      # Force production mode regardless of what .env.production says.
+      ENVIRONMENT: production
+      DEBUG: "false"
+      HOST: 0.0.0.0
+      PORT: "8000"
+      API_V1_STR: /api/v1
+      # Restrict CORS to the real production domain. The default below MUST be
+      # replaced before deploying; see the .env.production instructions.
+      CORS_ORIGINS: "${CORS_ORIGINS:-https://your-domain.com}"
+      # Production database URL points at the postgres service above.
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-dav_user}:${POSTGRES_PASSWORD:-dav_password}@postgres:5432/${POSTGRES_DB:-dav_db}"
+      # No DEV_MOCK_OTP in production - real OTP provider required.
+      # No mock providers: OTP must be Twilio, AI must be Gemini/OpenAI.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - dav-data-prod:/data
+    ports:
+      - "8101:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1G
+        reservations:
+          cpus: "0.50"
+          memory: 512M
+
+  # ---------------------------------------------------------------------------
+  # Frontend (nginx serving the built SPA + reverse proxy to backend)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Production build args: real API base URL and Google OAuth client ID.
+        VITE_API_BASE_URL: /api/v1
+        VITE_GOOGLE_CLIENT_ID: "${VITE_GOOGLE_CLIENT_ID:-}"
+    container_name: dav-frontend-prod
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+volumes:
+  postgres-prod:
+  dav-data-prod:

@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from typing import Dict, Any, Optional
 import httpx
@@ -44,9 +45,11 @@ class GoogleAuthService:
                 logger.error(f"Network error verifying Google ID token: {e}")
                 raise ValueError("Failed to reach Google token verification service")
         else:
-            # Development Mode fallback when credentials are not yet configured
             logger.info("[AUTH] GOOGLE_CLIENT_ID unset. Using development mock Google token resolution.")
-            mock_sub = f"g_{abs(hash(token))}"
+            # Development Mode fallback when credentials are not yet configured.
+            # Use a stable digest: builtin hash() is salted per process, which would
+            # mint a new user on every restart and discard the saved onboarding.
+            mock_sub = "g_" + hashlib.sha256(token.encode("utf-8")).hexdigest()[:32]
             return {
                 "google_id": mock_sub,
                 "email": "farmer@dav.local",

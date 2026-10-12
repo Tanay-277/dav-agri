@@ -1,11 +1,10 @@
-import React from 'react';
-import { useStore } from './state/store';
+import React, { useEffect, useRef } from 'react';
+import { useStore, store } from './state/store';
 
 // Import All 17 Figma Screens
 import { LaunchScreen } from './screens/LaunchScreen';
-import { SignupOptionsScreen } from './screens/SignupOptionsScreen';
-import { PhoneScreen } from './screens/PhoneScreen';
-import { OtpScreen } from './screens/OtpScreen';
+import { LoginScreen } from './screens/LoginScreen';
+import { RegisterScreen } from './screens/RegisterScreen';
 import { LangSelectScreen } from './screens/LangSelectScreen';
 import { LanguageConfirmScreen } from './screens/LanguageConfirmScreen';
 import { VoiceSetupScreen } from './screens/VoiceSetupScreen';
@@ -23,16 +22,45 @@ import { EditProfileScreen } from './screens/EditProfileScreen';
 export const App: React.FC = () => {
   const [state] = useStore();
 
+  const suppressHistoryPush = useRef(false);
+
+  // Android and iOS browsers bind the hardware/browser back gesture to the
+  // history stack. With `replaceState` and no entries of our own, that gesture
+  // closed the PWA from any screen, so the in-app back control and the device
+  // back button behaved completely differently. Each screen now pushes an entry
+  // and the popstate handler moves through the app instead.
+  useEffect(() => {
+    if (suppressHistoryPush.current) {
+      // A popstate already consumed an entry; push a fresh one in its place so
+      // the stack length stays constant as the farmer walks back and forth.
+      suppressHistoryPush.current = false;
+      window.history.pushState({ davScreen: state.currentScreen }, '');
+      return;
+    }
+    window.history.pushState({ davScreen: state.currentScreen }, '');
+  }, [state.currentScreen]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (store.getState().currentScreen === 'launch') {
+        // Nothing behind the splash; let the gesture leave the app.
+        return;
+      }
+      suppressHistoryPush.current = true;
+      store.goBack();
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
   const renderScreen = () => {
     switch (state.currentScreen) {
       case 'launch':
         return <LaunchScreen />;
-      case 'signup_options':
-        return <SignupOptionsScreen />;
-      case 'phone':
-        return <PhoneScreen />;
-      case 'otp':
-        return <OtpScreen />;
+      case 'login':
+        return <LoginScreen />;
+      case 'register':
+        return <RegisterScreen />;
       case 'lang_select':
         return <LangSelectScreen />;
       case 'language_confirm':

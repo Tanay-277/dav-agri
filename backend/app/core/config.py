@@ -22,7 +22,14 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> List[str]:
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        # A phone on the LAN gets a dynamic IP, so exact-match lists cannot cover
+        # every device. "*" enables any origin. This is safe here because auth is
+        # a Bearer token in a header (never a cookie), so no cross-site request
+        # can ride an ambient credential. See docs/MOBILE.md.
+        if "*" in origins:
+            return ["*"]
+        return origins
 
     # Database
     DATABASE_URL: str = "sqlite:///./dav.db"

@@ -1,4 +1,7 @@
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+// Default to a relative path so the app calls the API on whichever origin served it.
+// This is what makes the mobile access model work (docs/MOBILE.md): an absolute
+// host such as http://localhost:8000 would point at the phone itself.
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '/api/v1';
 
 export class ApiError extends Error {
   code: string;
@@ -51,7 +54,12 @@ export async function apiRequest<T>(
     });
 
     if (response.status === 401) {
+      // An expired or revoked token means the session is gone. Clear it and get
+      // the user out of the authenticated screens: leaving them on, say, the
+      // profile screen with a signed-in looking UI while every request fails is
+      // indistinguishable from a broken app.
       localStorage.removeItem('dav_auth_token');
+      window.dispatchEvent(new Event('dav:session-expired'));
     }
 
     // Check if response is audio binary stream

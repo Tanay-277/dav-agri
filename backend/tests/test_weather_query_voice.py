@@ -1,11 +1,10 @@
-import io
+﻿import io
 import pytest
-from app.core.config import settings
 
 def get_demo_auth_token(client):
-    phone = "86524525856"
-    client.post("/api/v1/auth/phone/request-otp", json={"phone": phone})
-    res = client.post("/api/v1/auth/phone/verify-otp", json={"phone": phone, "otp": settings.DEV_MOCK_OTP})
+    # Login with demo user credentials (password123 from init_db)
+    res = client.post("/api/v1/auth/login", json={"username": "86524525856", "password": "password123"})
+    assert res.status_code == 200
     return res.json()["data"]["access_token"]
 
 def test_weather_endpoint(client):

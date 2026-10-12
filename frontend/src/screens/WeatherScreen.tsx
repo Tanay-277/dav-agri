@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CloudRain, Sun, Cloud, Droplets, Mic, Play, HelpCircle, Check, ArrowRight } from 'lucide-react';
+import { CloudRain, Sun, Cloud, Droplets, Mic, Play, Pause, HelpCircle, Check, ArrowRight } from 'lucide-react';
 import { TopBar } from '../components/common/TopBar';
 import { useStore } from '../state/store';
 import { getTranslation } from '../i18n';
@@ -15,6 +15,7 @@ export const WeatherScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -177,6 +178,7 @@ export const WeatherScreen: React.FC = () => {
           {/* Mic */}
           <button
             onClick={() => store.setScreen('listening')}
+            aria-label={t.ask_about_weather}
             className="w-12 h-12 rounded-full bg-white border border-stone-300 flex items-center justify-center shadow-sm active:scale-95 transition-all text-stone-800 hover:bg-stone-50"
           >
             <Mic size={18} />
@@ -185,17 +187,27 @@ export const WeatherScreen: React.FC = () => {
           {/* Audio Playback of Advisory */}
           <button
             onClick={handlePlayAdvisory}
+            aria-label={isPlayingAudio ? t.stop_audio : t.play_advisory}
             className={`w-12 h-12 rounded-full bg-white border border-stone-300 flex items-center justify-center shadow-sm active:scale-95 transition-all text-stone-800 hover:bg-stone-50 ${
               isPlayingAudio ? 'ring-2 ring-blue-500 animate-pulse' : ''
             }`}
           >
-            <Play size={18} className="fill-stone-800 ml-0.5" />
+            {isPlayingAudio ? (
+              <Pause size={18} className="fill-stone-800" />
+            ) : (
+              <Play size={18} className="fill-stone-800 ml-0.5" />
+            )}
           </button>
 
-          {/* Help */}
+          {/* Help has no content behind it yet. Report that rather than
+              accepting a tap and appearing to do nothing. */}
           <button
-            onClick={() => {}}
+            onClick={() => {
+              setNotice(t.not_available_yet);
+              setTimeout(() => setNotice(null), 2500);
+            }}
             className="w-12 h-12 rounded-full bg-white border border-stone-300 flex items-center justify-center shadow-sm active:scale-95 transition-all text-stone-800 hover:bg-stone-50"
+            aria-label={t.help}
           >
             <HelpCircle size={18} />
           </button>
@@ -216,12 +228,18 @@ export const WeatherScreen: React.FC = () => {
           )}
         </button>
 
+        {notice && (
+          <div className="w-full text-center text-xs text-stone-700 bg-stone-200/80 py-2 px-3 rounded-xl">
+            {notice}
+          </div>
+        )}
+
         {/* Continue to Home Dashboard Button */}
         <button
           onClick={() => store.setScreen('home')}
           className="w-full py-3.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm shadow-md active:scale-98 transition-all flex items-center justify-center gap-2 mt-1"
         >
-          <span>{state.language === 'en' ? 'Continue to Home' : state.language === 'hi' ? 'होम डैशबोर्ड पर जाएं' : 'मुख्य पृष्ठावर जा'}</span>
+          <span>{t.continue_to_home}</span>
           <ArrowRight size={16} />
         </button>
       </div>

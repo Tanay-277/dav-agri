@@ -39,6 +39,13 @@ pnpm-debug.log*
 audio_cache/
 temp_audio/
 
+# TLS certificates - never commit private keys.
+# Regenerate with ./generate-dev-certs.ps1
+certs/
+*.pem
+*.key
+*.crt
+
 # IDE & OS
 .vscode/
 .idea/

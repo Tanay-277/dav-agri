@@ -8,7 +8,7 @@ import { useStore } from '../state/store';
 import { getTranslation } from '../i18n';
 import { farmService } from '../services/farmService';
 import { voiceService } from '../services/voiceService';
-import { Crop, ExpenseBreakdown } from '../types';
+import { Crop, ExpenseBreakdown, StructuredVisualization } from '../types';
 
 export const FarmTopicScreen: React.FC = () => {
   const [state, store] = useStore();
@@ -16,6 +16,7 @@ export const FarmTopicScreen: React.FC = () => {
   const [crops, setCrops] = useState<Crop[]>([]);
   const [selectedCrop, setSelectedCrop] = useState('crop_cotton');
   const [expenses, setExpenses] = useState<ExpenseBreakdown | null>(null);
+  const [cropIncomeChart, setCropIncomeChart] = useState<StructuredVisualization | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newYear, setNewYear] = useState('2026');
   const [newQty, setNewQty] = useState('25');
@@ -24,6 +25,7 @@ export const FarmTopicScreen: React.FC = () => {
   useEffect(() => {
     farmService.listCrops().then(setCrops).catch(console.warn);
     farmService.getExpenseBreakdown(state.language).then(setExpenses).catch(console.warn);
+    farmService.getCropIncomeTrends(state.language).then(setCropIncomeChart).catch(console.warn);
   }, [state.language]);
 
   const handleOpenExplanation = () => {
@@ -101,7 +103,7 @@ export const FarmTopicScreen: React.FC = () => {
 
         {/* Chart 1: कापूस पिकांमधून मिळालेले उत्पन्न */}
         <div className="flex flex-col gap-2">
-          <MultiLineChart title={t.cotton_income_title} />
+          <MultiLineChart data={cropIncomeChart || undefined} title={t.cotton_income_title} />
 
           {/* Button: मला हे समजावून सांगा */}
           <button

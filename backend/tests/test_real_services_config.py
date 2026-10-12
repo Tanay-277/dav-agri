@@ -79,8 +79,19 @@ def test_twilio_otp_missing_credentials_rejection():
     with pytest.raises(RuntimeError, match="Twilio SMS credentials are not properly configured"):
         broken_prod_otp.send_otp("9876543210", "12345")
 
-def test_google_auth_service():
-    # In dev without GOOGLE_CLIENT_ID, returns simulated user profile
+@pytest.fixture
+def no_google_client_id(monkeypatch):
+    """Force the development-mock branch of GoogleAuthService.
+
+    These tests cover mock behaviour, which only runs when GOOGLE_CLIENT_ID is
+    unset. Once a real client ID is configured (backend/.env), that branch is
+    bypassed and the tests would otherwise fail depending on ambient config.
+    """
+    monkeypatch.setattr(settings, "GOOGLE_CLIENT_ID", "")
+
+
+def test_google_auth_service(no_google_client_id):
+    # With GOOGLE_CLIENT_ID unset, returns a simulated user profile
     res = GoogleAuthService.verify_id_token("sample_test_id_token")
     assert "google_id" in res
     assert res["google_id"].startswith("g_")
@@ -89,6 +100,52 @@ def test_google_auth_service():
     # Empty token rejected
     with pytest.raises(ValueError, match="Google ID token cannot be empty"):
         GoogleAuthService.verify_id_token("")
+
+
+def test_google_mock_subject_is_stable(no_google_client_id):
+    """The dev-mode subject must not change between processes.
+
+    It used to be derived from hash(), which Python salts per process, so every
+    backend restart minted a new user and discarded the saved language.
+    """
+    first = GoogleAuthService.verify_id_token("stable_token_check")
+    second = GoogleAuthService.verify_id_token("stable_token_check")
+    assert first["google_id"] == second["google_id"]
+
+    different = GoogleAuthService.verify_id_token("another_token_check")
+    assert different["google_id"] != first["google_id"]
+
+
+def test_google_mock_skipped_when_client_id_configured():
+    """A configured client ID must not fall through to the demo identity.
+
+    The mock returns a fixed email and a synthetic subject. If a real
+    GOOGLE_CLIENT_ID is set, the service must attempt real verification instead,
+    so a forged token is rejected rather than silently accepted.
+    """
+    if not settings.GOOGLE_CLIENT_ID:
+        pytest.skip("no GOOGLE_CLIENT_ID configured")
+
+    with pytest.raises(ValueError):
+        # A fabricated token is never valid against a real client ID.
+        GoogleAuthService.verify_id_token("google_token_mock_farmer")
+
+def test_cors_origin_list_supports_wildcard():
+    """A phone's LAN address is dynamic, so '*' must collapse to a single entry.
+
+    An exact-match list cannot cover every device on the network.
+    """
+    settings.CORS_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
+    assert settings.cors_origins_list == ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+    settings.CORS_ORIGINS = "*"
+    assert settings.cors_origins_list == ["*"]
+
+    # Whitespace around entries is tolerated
+    settings.CORS_ORIGINS = " http://a:1 , http://b:2 "
+    assert settings.cors_origins_list == ["http://a:1", "http://b:2"]
+
+    settings.CORS_ORIGINS = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173"
 
 def test_weather_metadata_and_providers():
     mock_weather = MockWeatherProvider()

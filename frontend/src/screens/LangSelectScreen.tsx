@@ -155,10 +155,19 @@ export const LangSelectScreen: React.FC = () => {
 
   const anyPlaying = Object.values(audioStates).some((s) => s === 'playing');
 
+  /* Back must return to wherever the farmer actually came from. This screen is
+           reached from OTP sign-up and from the "No, I cannot hear it" branch of
+           the confirmation screen, not only from sign-up options, so a fixed
+           destination would strand a returning user on the sign-up screen. */
+  const handleBack = () => {
+    voiceService.stopActiveAudio();
+    store.setScreen(state.user ? (state.user.onboarding_completed ? 'home' : 'login') : 'login');
+  };
+
   return (
     <div className="w-full h-full flex-1 bg-soil flex flex-col items-center justify-between pb-10 select-none text-white overflow-y-auto">
       {/* Top Bar with Back Arrow */}
-      <TopBar showBack={true} onBack={() => store.setScreen('signup_options')} showLanguagePill={false} className="text-white" />
+      <TopBar showBack={true} onBack={handleBack} showLanguagePill={false} className="text-white" />
 
       {/* Top Graphic */}
       <div className="flex-1 flex items-center justify-center py-4">
@@ -183,30 +192,41 @@ export const LangSelectScreen: React.FC = () => {
           const status = audioStates[item.code];
 
           return (
+            /* A flex row holding two sibling buttons, not a button wrapping a button:
+               nested interactive elements are invalid HTML, and browsers split
+               them unpredictably, so tapping the row could fire the preview
+               instead of selecting the language. */
             <div
               key={item.code}
-              onClick={() => handleSelectLanguage(item.code)}
-              className={`w-full py-3.5 px-6 rounded-full flex items-center justify-between cursor-pointer transition-all duration-200 shadow-sm active:scale-98 ${
+              data-testid={`lang-row-${item.code}`}
+              className={`w-full py-3.5 px-6 rounded-full flex items-center justify-between transition-all duration-200 shadow-sm ${
                 isSelected
                   ? 'bg-white/25 border border-white/50 text-white'
-                  : 'bg-black/35 hover:bg-black/45 border border-white/10 text-stone-200'
+                  : 'bg-black/35 border border-white/10 text-stone-200'
               }`}
             >
-              <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => handleSelectLanguage(item.code)}
+                aria-pressed={isSelected}
+                data-testid={`lang-${item.code}`}
+                className="flex-1 flex items-center gap-4 text-left active:scale-98 py-0.5"
+              >
                 <span className="text-xs font-bold tracking-wider text-amber-200/90 w-8">
                   {item.script}
                 </span>
                 <span className="text-sm font-semibold tracking-wide">
                   {item.label}
                 </span>
-              </div>
+              </button>
 
               {/* Dynamic State Play Preview Button: ▶ → Loading → 🔊 Playing → ▶ */}
               <button
                 type="button"
                 onClick={(e) => handlePlayPreview(e, item.code)}
                 disabled={status === 'loading'}
-                className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all ${
+                aria-label={`${t.preview_voice} ${item.label}`}
+                className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center border transition-all ${
                   status === 'playing'
                     ? 'bg-amber-400 border-amber-300 text-stone-950 scale-105 shadow-md shadow-amber-400/30'
                     : status === 'loading'
@@ -215,7 +235,6 @@ export const LangSelectScreen: React.FC = () => {
                     ? 'bg-red-500/40 border-red-400 text-white'
                     : 'border-white/40 hover:bg-white/20 text-white'
                 }`}
-                title={`Preview ${item.label} voice`}
               >
                 {status === 'loading' ? (
                   <Loader2 size={15} className="animate-spin text-white" />

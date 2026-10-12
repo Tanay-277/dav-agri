@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local database
+*.db
+*.db-journal
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+live_verification_report.json
+tests/

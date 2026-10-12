@@ -149,6 +149,7 @@ export const HomeScreen: React.FC = () => {
         <div className="flex flex-col items-center justify-center my-auto pb-4">
           <button
             onClick={() => store.setScreen('listening')}
+            aria-label={t.tap_to_speak}
             className="w-20 h-20 rounded-full bg-white border-2 border-stone-300 shadow-float flex items-center justify-center active:scale-92 transition-transform duration-200 hover:shadow-xl group"
           >
             <Mic size={32} className="text-stone-800 group-hover:scale-110 transition-transform" />

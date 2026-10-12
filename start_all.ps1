@@ -2,8 +2,8 @@ Write-Host "=============================================" -ForegroundColor Yell
 Write-Host "     Launching DAV Full-Stack Platform       " -ForegroundColor Yellow
 Write-Host "=============================================" -ForegroundColor Yellow
 
-$backendScript = "C:\Users\harsh\.gemini\antigravity\scratch\dav\start_backend.ps1"
-$frontendScript = "C:\Users\harsh\.gemini\antigravity\scratch\dav\start_frontend.ps1"
+$backendScript = Join-Path $PSScriptRoot "start_backend.ps1"
+$frontendScript = Join-Path $PSScriptRoot "start_frontend.ps1"
 
 Write-Host "1. Launching Backend in new PowerShell window..." -ForegroundColor Cyan
 Start-Process powershell.exe -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-File", "`"$backendScript`""

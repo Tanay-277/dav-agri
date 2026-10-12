@@ -1,8 +1,7 @@
-from app.schemas.common import APIResponse, ErrorDetail
+﻿from app.schemas.common import APIResponse, ErrorDetail
 from app.schemas.auth import (
-    RequestOtpRequest,
-    RequestOtpResponse,
-    VerifyOtpRequest,
+    RegisterRequest,
+    LoginRequest,
     GoogleAuthRequest,
     TokenResponse,
     CurrentUserResponse,
@@ -41,9 +40,8 @@ from app.schemas.voice import (
 __all__ = [
     "APIResponse",
     "ErrorDetail",
-    "RequestOtpRequest",
-    "RequestOtpResponse",
-    "VerifyOtpRequest",
+    "RegisterRequest",
+    "LoginRequest",
     "GoogleAuthRequest",
     "TokenResponse",
     "CurrentUserResponse",
